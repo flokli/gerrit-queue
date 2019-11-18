@@ -29,13 +29,8 @@ func MakeSubmitQueue(gerritClient gerrit.IClient, projectName string, branchName
 	}
 }
 
-// LoadSeries fills Series by searching and filtering changesets, and assembling them to Series.
+// LoadSeries fills .Series by searching changesets, and assembling them to Series.
 func (s *SubmitQueue) LoadSeries() error {
-	// Normally, we'd like to use a queryString like
-	// "status:open project:myproject branch:mybranch hashtag:submitQueueTag label:verified=+1 label:code-review=+2"
-	// to avoid filtering client-side
-	// Due to https://github.com/andygrunwald/go-gerrit/issues/71,
-	// we need to do this on the client (filterChangesets)
 	var queryString = fmt.Sprintf("status:open project:%s branch:%s", s.ProjectName, s.BranchName)
 	log.Debugf("Running query %s", queryString)
 
@@ -44,14 +39,6 @@ func (s *SubmitQueue) LoadSeries() error {
 	if err != nil {
 		return err
 	}
-	// // Filter to contain the SubmitQueueTag
-	// changesets = gerrit.FilterChangesets(changesets, func(c *gerrit.Changeset) bool {
-	// 	return c.HasTag(SubmitQueueTag)
-	// })
-	// Filter to be code reviewed and verified
-	changesets = gerrit.FilterChangesets(changesets, func(c *gerrit.Changeset) bool {
-		return c.IsCodeReviewed && c.IsVerified
-	})
 
 	// Assemble to series
 	series, err := AssembleSeries(changesets)
@@ -76,9 +63,21 @@ func (s *SubmitQueue) UpdateHEAD() error {
 
 // TODO: clear submit queue tag if missing +1/+2?
 
+// IsAutoSubmittable returns true if a given Serie has all the necessary flags set
+// meaning it would be fine to rebase and/or submit it.
+// This means, every changeset needs to:
+// - have the s.SubmitQueueTag hashtag
+// - be verified (+1 by CI)
+// - be code reviewed (+2 by a human)
+func (s *SubmitQueue) IsAutoSubmittable(serie *Serie) bool {
+	return serie.FilterAllChangesets(func(c *gerrit.Changeset) bool {
+		return c.HasTag(s.SubmitQueueTag) && c.IsVerified && c.IsCodeReviewed
+	})
+}
+
 // DoSubmit submits changes that can be submitted,
 // and updates `Series` to contain the remaining ones
-// Also updates `BranchCommitID`.
+// Also updates `HEAD`.
 func (s *SubmitQueue) DoSubmit() error {
 	var remainingSeries []*Serie
 
@@ -89,10 +88,11 @@ func (s *SubmitQueue) DoSubmit() error {
 		}
 		// we can only submit series with a single parent commit (otherwise they're not rebased)
 		if len(serieParentCommitIDs) != 1 {
-			return fmt.Errorf("%s has more than one parent commit", serie.String())
+			return fmt.Errorf("%s has more than one parent commit, skipping", serie.String())
 		}
-		// if serie is rebased on top of current master…
-		if serieParentCommitIDs[0] == s.HEAD {
+
+		// if serie is auto-submittable and rebased on top of current master…
+		if s.IsAutoSubmittable(serie) && serieParentCommitIDs[0] == s.HEAD {
 			// submit the last changeset of the series, which submits intermediate ones too
 			_, err := s.gerrit.SubmitChangeset(serie.ChangeSets[len(serie.ChangeSets)-1])
 			if err != nil {

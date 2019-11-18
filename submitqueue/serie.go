@@ -69,6 +69,17 @@ func (s *Serie) CheckIntegrity() error {
 	return nil
 }
 
+// FilterAllChangesets applies a filter function on all of the changesets in the series.
+// returns true if it returns true for all changesets, false otherwise
+func (s *Serie) FilterAllChangesets(f func(c *gerrit.Changeset) bool) bool {
+	for _, changeset := range s.ChangeSets {
+		if f(changeset) == false {
+			return false
+		}
+	}
+	return true
+}
+
 func (s *Serie) String() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("Serie[%d]", len(s.ChangeSets)))

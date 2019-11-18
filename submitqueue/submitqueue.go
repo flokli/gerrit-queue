@@ -119,42 +119,41 @@ func (s *SubmitQueue) DoSubmit() error {
 	return nil
 }
 
-// DoRebase rebases all remaining series on top of each other
-// they should still be ordered by series size
-// TODO: this will produce a very large series on the next run, so we might want to preserve individual series over multiple runs
+// DoRebase rebases the next auto-submittable series on top of current HEAD
+// they are still ordered by series size
+// After a DoRebase, consumers are supposed to fetch state again via LoadSeries,
+// as things most likely have changed, and error handling during partially failed rebases
+// is really tricky
 func (s *SubmitQueue) DoRebase() error {
-	newSeries := make([]*Serie, len(s.Series))
-	futureHEAD := s.HEAD
+	if s.HEAD == "" {
+		return fmt.Errorf("current HEAD is an empty string, bailing out")
+	}
 	for _, serie := range s.Series {
-		//TODO: don't rebase everything, just pick a "good candidate"
-
 		logger := log.WithFields(log.Fields{
 			"serie": serie,
 		})
-		logger.Infof("rebasing %s on top of %s", serie, futureHEAD)
-		newSerie, err := s.RebaseSerie(serie, futureHEAD)
-		if err != nil {
-			logger.Warnf("unable to rebase serie %s", err)
-			// TODO: we want to skip on trivial rebase errors instead of bailing out.
-			// skip means adding that serie as it is to newSeries, without advancing previousLeafCommitId
-
-			// TODO: we also should talk about when to remove the submit-queue tag
-			// just because we scheduled a conflicting submit plan, doesn't mean this is not submittable.
-			// so just removing the submit-queue tag would be unfair
-			return err
-		}
-		newSeries = append(newSeries, newSerie)
-
-		// prepare for next iteration
-		futureHEAD, err = newSerie.GetLeafCommitID()
-		if err != nil {
-			// This should never happen
-			logger.Errorf("new serie shouldn't be empty: %s", newSerie)
-			return err
+		if !s.IsAutoSubmittable(serie) {
+			logger.Debug("skipping non-auto-submittable series")
+			continue
 		}
 
+		logger.Infof("rebasing on top of %s", s.HEAD)
+		_, err := s.RebaseSerie(serie, s.HEAD)
+		if err != nil {
+			// We skip trivial rebase errors instead of bailing out.
+			// TODO: we might want to remove s.SubmitQueueTag from the changeset,
+			// but even without doing it,
+			// we're merly spanning, and won't get stuck in trying to rebase the same
+			// changeset over and over again, as some other changeset will likely succeed
+			// with rebasing and will be merged by DoSubmit.
+			logger.Warnf("failure while rebasing, continuing with next one: %s", err)
+			continue
+		} else {
+			logger.Info("success rebasing on top of %s", s.HEAD)
+			break
+		}
 	}
-	s.Series = newSeries
+
 	return nil
 }
 

@@ -8,10 +8,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// SubmitQueueTag is the tag used to determine whether something
-// should be considered by the submit queue or not
-const SubmitQueueTag = "submit_me"
-
 // SubmitQueue contains a list of series, a gerrit connection, and some project configuration
 type SubmitQueue struct {
 	Series         []*Serie

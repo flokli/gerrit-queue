@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Gerrit Submit Queue</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha256-CjSoeELFOcH0/uxWu6mC/Vlrc1AARqbm/jiiImDGV3s=" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha256-YLGeXaapI0/5IgZopewRJcFXomhRMlYYjugPLSyNjTY=" crossorigin="anonymous" />
+</head>
+<body>
+  <h1>Gerrit Submit Queue</h1>
+  <h2>{{ .projectName }}/{{ .branchName }} is at {{ printf "%.7s" .HEAD }}</h2>
+  <h2>Current Queue:</h2>
+  {{ range $serie := .series }}
+  <div class="list-group">
+    {{ range $changeset := $serie.ChangeSets}}
+    <div class="list-group-item">
+      <div class="d-flex w-100 justify-content-between">
+        <h5>{{ $changeset.Subject }}</h5>
+        <small>#{{ $changeset.Number }}</small>
+      </div>
+      <div class="d-flex w-100 justify-content-between">
+          <small>{{ $changeset.OwnerName }}</small>
+          <span>
+              {{ if $changeset.IsVerified }}<span class="badge badge-success badge-pill">+1 (CI)</span>{{ end }}
+              {{ if $changeset.IsCodeReviewed }}<span class="badge badge-info badge-pill">+2 (CR)</span>{{ end }}
+          </span>
+      </div>
+      <div>
+        <code>
+          {{ $changeset.CommitID }}
+        </code>
+      </div>
+    </div>
+    {{ end }}
+  </div>
+  <br />
+  {{ end }}
+</body>
+</html>

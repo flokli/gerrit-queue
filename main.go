@@ -4,15 +4,15 @@ package main
 
 import (
 	"os"
+	"time"
+
+	"net/http"
 
 	"github.com/tweag/gerrit-queue/frontend"
 	"github.com/tweag/gerrit-queue/gerrit"
 	"github.com/tweag/gerrit-queue/submitqueue"
 
-	"github.com/gin-gonic/gin"
 	"github.com/urfave/cli"
-
-	"fmt"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -88,31 +88,29 @@ func main() {
 		log.Printf("Successfully connected to gerrit at %s", URL)
 
 		submitQueue := submitqueue.MakeSubmitQueue(gerritClient, projectName, branchName, submitQueueTag)
+		runner := submitqueue.NewRunner(submitQueue)
 
-		router := gin.Default()
-		frontend := frontend.MakeFrontend(router, &submitQueue)
+		handler := frontend.MakeFrontend(runner, submitQueue)
 
-		err = submitQueue.LoadSeries()
-		if err != nil {
-			log.Errorf("Error loading submit queue: %s", err)
-		}
+		// fetch only on first run
+		runner.Trigger(true)
 
-		fmt.Println()
-		fmt.Println()
-		fmt.Println()
-		fmt.Println()
-		for _, serie := range submitQueue.Series {
-			fmt.Println(fmt.Sprintf("%s", serie))
-			for _, changeset := range serie.ChangeSets {
-				fmt.Println(fmt.Sprintf(" - %s", changeset.String()))
+		// ticker
+		go func() {
+			for {
+				time.Sleep(time.Minute * 10)
+				runner.Trigger(fetchOnly)
 			}
-			fmt.Println()
+		}()
+
+		server := http.Server{
+			Addr:    ":8080",
+			Handler: handler,
 		}
 
-		frontend.Run(":8080")
-
-		if fetchOnly {
-			//return backlog.Run()
+		server.ListenAndServe()
+		if err != nil {
+			log.Fatal(err)
 		}
 
 		return nil

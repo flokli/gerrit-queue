@@ -17,13 +17,15 @@ type IClient interface {
 	SubmitChangeset(changeset *Changeset) (*Changeset, error)
 	RebaseChangeset(changeset *Changeset, ref string) (*Changeset, error)
 	RemoveTag(changeset *Changeset, tag string) (*Changeset, error)
+	GetBaseURL() string
 }
 
 var _ IClient = &Client{}
 
 // Client provides some ways to interact with a gerrit instance
 type Client struct {
-	client *goGerrit.Client
+	client  *goGerrit.Client
+	baseURL string
 }
 
 // NewClient initializes a new gerrit client
@@ -38,7 +40,10 @@ func NewClient(URL, username, password string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Client{client: goGerritClient}, nil
+	return &Client{
+		client:  goGerritClient,
+		baseURL: URL,
+	}, nil
 }
 
 // SearchChangesets fetches a list of changesets matching a passed query string
@@ -116,4 +121,9 @@ func (gerrit *Client) RemoveTag(changeset *Changeset, tag string) (*Changeset, e
 	// TODO: implement set hashtags api in go-gerrit and use here
 	// https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#set-hashtags
 	return changeset, nil
+}
+
+// GetBaseURL returns the gerrit base URL
+func (gerrit *Client) GetBaseURL() string {
+	return gerrit.baseURL
 }

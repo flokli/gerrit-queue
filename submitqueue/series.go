@@ -5,7 +5,7 @@ import (
 
 	"github.com/tweag/gerrit-queue/gerrit"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // AssembleSeries consumes a list of `Changeset`, and groups them together to series
@@ -17,12 +17,12 @@ import (
 // and mapParentToSeries, which allows to lookup all series having a certain parent commit id,
 // to prepend to any of the existing series
 // if we can't find anything, we create a new series
-func AssembleSeries(changesets []*gerrit.Changeset) ([]*Serie, error) {
+func AssembleSeries(changesets []*gerrit.Changeset, log *logrus.Logger) ([]*Serie, error) {
 	series := make([]*Serie, 0)
 	mapLeafToSerie := make(map[string]*Serie, 0)
 
 	for _, changeset := range changesets {
-		logger := log.WithFields(log.Fields{
+		logger := log.WithFields(logrus.Fields{
 			"changeset": changeset.String(),
 		})
 
@@ -90,7 +90,7 @@ func AssembleSeries(changesets []*gerrit.Changeset) ([]*Serie, error) {
 
 	// Check integrity, just to be on the safe side.
 	for _, serie := range series {
-		logger := log.WithFields(log.Fields{
+		logger := log.WithFields(logrus.Fields{
 			"serie": serie.String(),
 		})
 		logger.Debugf("checking integrity")

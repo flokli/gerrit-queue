@@ -2,10 +2,11 @@ package submitqueue
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/tweag/gerrit-queue/gerrit"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // SubmitQueue contains a list of series, a gerrit connection, and some project configuration
@@ -16,11 +17,12 @@ type SubmitQueue struct {
 	BranchName     string
 	HEAD           string
 	SubmitQueueTag string // the tag used to submit something to the submit queue
+	URL            string
 }
 
 // MakeSubmitQueue builds a new submit queue
-func MakeSubmitQueue(gerritClient gerrit.IClient, projectName string, branchName string, submitQueueTag string) SubmitQueue {
-	return SubmitQueue{
+func MakeSubmitQueue(gerritClient gerrit.IClient, projectName string, branchName string, submitQueueTag string) *SubmitQueue {
+	return &SubmitQueue{
 		Series:         make([]*Serie, 0),
 		gerrit:         gerritClient,
 		ProjectName:    projectName,
@@ -30,7 +32,7 @@ func MakeSubmitQueue(gerritClient gerrit.IClient, projectName string, branchName
 }
 
 // LoadSeries fills .Series by searching changesets, and assembling them to Series.
-func (s *SubmitQueue) LoadSeries() error {
+func (s *SubmitQueue) LoadSeries(log *logrus.Logger) error {
 	var queryString = fmt.Sprintf("status:open project:%s branch:%s", s.ProjectName, s.BranchName)
 	log.Debugf("Running query %s", queryString)
 
@@ -41,7 +43,7 @@ func (s *SubmitQueue) LoadSeries() error {
 	}
 
 	// Assemble to series
-	series, err := AssembleSeries(changesets)
+	series, err := AssembleSeries(changesets, log)
 	if err != nil {
 		return err
 	}
@@ -75,11 +77,18 @@ func (s *SubmitQueue) IsAutoSubmittable(serie *Serie) bool {
 	})
 }
 
+// GetChangesetURL returns the URL to view a given changeset
+func (s *SubmitQueue) GetChangesetURL(changeset *gerrit.Changeset) string {
+	return fmt.Sprintf("%s/c/%s/+/%d", s.gerrit.GetBaseURL(), s.ProjectName, changeset.Number)
+}
+
 // DoSubmit submits changes that can be submitted,
 // and updates `Series` to contain the remaining ones
 // Also updates `HEAD`.
-func (s *SubmitQueue) DoSubmit() error {
+func (s *SubmitQueue) DoSubmit(log *logrus.Logger) error {
 	var remainingSeries []*Serie
+
+	// TODO: actually log more!
 
 	for _, serie := range s.Series {
 		serieParentCommitIDs, err := serie.GetParentCommitIDs()
@@ -124,12 +133,12 @@ func (s *SubmitQueue) DoSubmit() error {
 // After a DoRebase, consumers are supposed to fetch state again via LoadSeries,
 // as things most likely have changed, and error handling during partially failed rebases
 // is really tricky
-func (s *SubmitQueue) DoRebase() error {
+func (s *SubmitQueue) DoRebase(log *logrus.Logger) error {
 	if s.HEAD == "" {
 		return fmt.Errorf("current HEAD is an empty string, bailing out")
 	}
 	for _, serie := range s.Series {
-		logger := log.WithFields(log.Fields{
+		logger := log.WithFields(logrus.Fields{
 			"serie": serie,
 		})
 		if !s.IsAutoSubmittable(serie) {
@@ -157,36 +166,73 @@ func (s *SubmitQueue) DoRebase() error {
 	return nil
 }
 
+// Problem: no inspection during the run
+// Problem: record the state
+
+type Result struct {
+	LogEntries []*logrus.Entry
+	Series     []Serie
+	Error      error
+}
+
+func (r Result) StartTime() time.Time {
+	return r.LogEntries[0].Time
+}
+
+func (r Result) EndTime() time.Time {
+	return r.LogEntries[len(r.LogEntries)-1].Time
+}
+
+func (r *Result) Fire(entry *logrus.Entry) error {
+	r.LogEntries = append(r.LogEntries, entry)
+	return nil
+}
+
+func (r *Result) Levels() []logrus.Level {
+	return logrus.AllLevels
+}
+
 // Run starts the submit and rebase logic.
-func (s *SubmitQueue) Run() error {
+func (s *SubmitQueue) Run(fetchOnly bool) *Result {
+	r := &Result{}
 	//TODO: log decisions made and add to some ring buffer
 	var err error
+
+	log := logrus.New()
+	log.AddHook(r)
 
 	commitID, err := s.gerrit.GetHEAD(s.ProjectName, s.BranchName)
 	if err != nil {
 		log.Errorf("Unable to retrieve HEAD of branch %s at project %s: %s", s.BranchName, s.ProjectName, err)
-		return err
+		r.Error = err
+		return r
 	}
 	s.HEAD = commitID
 
-	err = s.LoadSeries()
+	err = s.LoadSeries(log)
 	if err != nil {
-		return err
+		r.Error = err
+		return r
 	}
 	if len(s.Series) == 0 {
 		// Nothing to do!
 		log.Warn("Nothing to do here")
-		return nil
+		return r
 	}
-	err = s.DoSubmit()
+	if fetchOnly {
+		return r
+	}
+	err = s.DoSubmit(log)
 	if err != nil {
-		return err
+		r.Error = err
+		return r
 	}
-	err = s.DoRebase()
+	err = s.DoRebase(log)
 	if err != nil {
-		return err
+		r.Error = err
+		return r
 	}
-	return nil
+	return r
 }
 
 // RebaseSerie rebases a whole serie on top of a given ref

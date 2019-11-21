@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rakyll/statik/fs"
 
+	"github.com/tweag/gerrit-queue/gerrit"
 	_ "github.com/tweag/gerrit-queue/statik" // register static assets
 	"github.com/tweag/gerrit-queue/submitqueue"
 )
@@ -21,13 +22,13 @@ type Frontend struct {
 }
 
 //loadTemplate loads a single template from statikFS and returns a template object
-func loadTemplate(templateName string) (*template.Template, error) {
+func loadTemplate(templateName string, funcMap template.FuncMap) (*template.Template, error) {
 	statikFS, err := fs.New()
 	if err != nil {
 		return nil, err
 	}
 
-	tmpl := template.New(templateName)
+	tmpl := template.New(templateName).Funcs(funcMap)
 	r, err := statikFS.Open("/" + templateName)
 	if err != nil {
 		return nil, err
@@ -41,9 +42,20 @@ func loadTemplate(templateName string) (*template.Template, error) {
 }
 
 // MakeFrontend configures the router and returns a new Frontend struct
-func MakeFrontend(router *gin.Engine, submitQueue *submitqueue.SubmitQueue) *Frontend {
+func MakeFrontend(runner *submitqueue.Runner, submitQueue *submitqueue.SubmitQueue) *Frontend {
+	router := gin.Default()
 
-	tmpl := template.Must(loadTemplate("submit-queue.tmpl.html"))
+	funcMap := template.FuncMap{
+		"isAutoSubmittable": func(serie *submitqueue.Serie) bool {
+			return submitQueue.IsAutoSubmittable(serie)
+		},
+		"changesetURL": func(changeset *gerrit.Changeset) string {
+			return submitQueue.GetChangesetURL(changeset)
+		},
+	}
+
+	tmpl := template.Must(loadTemplate("submit-queue.tmpl.html", funcMap))
+
 	router.SetHTMLTemplate(tmpl)
 
 	router.GET("/submit-queue.json", func(c *gin.Context) {
@@ -77,7 +89,6 @@ func MakeFrontend(router *gin.Engine, submitQueue *submitqueue.SubmitQueue) *Fro
 	}
 }
 
-// Run starts the webserver on a given address
-func (f *Frontend) Run(addr string) error {
-	return f.Router.Run(addr)
+func (f *Frontend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	f.Router.ServeHTTP(w, r)
 }

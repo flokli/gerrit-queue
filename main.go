@@ -76,6 +76,7 @@ func main() {
 		cli.BoolFlag{
 			Name:        "fetch-only",
 			Usage:       "Only fetch changes and assemble queue, but don't actually write",
+			EnvVar:      "SUBMIT_QUEUE_FETCH_ONLY",
 			Destination: &fetchOnly,
 		},
 	}

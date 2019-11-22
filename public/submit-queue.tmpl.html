@@ -2,46 +2,91 @@
 <html>
 <head>
   <title>Gerrit Submit Queue</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.js" integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU=" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha256-CjSoeELFOcH0/uxWu6mC/Vlrc1AARqbm/jiiImDGV3s=" crossorigin="anonymous"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha256-YLGeXaapI0/5IgZopewRJcFXomhRMlYYjugPLSyNjTY=" crossorigin="anonymous" />
 </head>
 <body>
-  <h1>Gerrit Submit Queue</h1>
-  <h2>{{ .projectName }}/{{ .branchName }} is at {{ printf "%.7s" .HEAD }}</h2>
-  <h2>Current Queue:</h2>
-
-  <table class="table table-sm table-hover">
-    <thead>
-      <tr>
-        <th scope="col">ChangeSet</th>
-        <th scope="col">Owner</th>
-        <th scope="col">Subject &amp; CommitID</th>
-        <th scope="col">Flags</th>
-      </tr>
-    </thead>
-    <tbody>
-      {{ range $serie := .series }}
-      <tr>
-        <td colspan="4">Serie with {{ len $serie.ChangeSets }} changes{{ if not ($serie | isAutoSubmittable) }}, not auto submittable {{ end }}</th>
-      </tr>
-      {{ range $changeset := $serie.ChangeSets}}
-      <tr class="{{ if $serie | isAutoSubmittable }}table-success{{ end }}">
-        <th scope="row"><a href="{{ changesetURL $changeset }}" target="_blank">#{{ $changeset.Number }}</a></th>
-        <td>{{ $changeset.OwnerName }}</td>
-        <td>
-          <strong>{{ $changeset.Subject }}</strong><br />
-          <small><code>{{ $changeset.CommitID }}</code></small>
-        </td>
-        <td>
+  <nav class="navbar sticky-top navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+      <a class="navbar-brand" href="#">Gerrit Submit Queue</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button></code>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav mr-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="#region-info">Info</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#region-queue">Current Queue</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#region-log">Log</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+  <div class="container">
+    <h2 id="region-info">Info</h2>
+    <table class="table">
+      <tbody>
+        <tr>
+          <th scope="row">Project Name:</th>
+          <td>{{ .projectName }}</td>
+        </tr>
+        <tr>
+          <th scope="row">Branch Name:</th>
+          <td>{{ .branchName }}</td>
+        </tr>
+        <tr>
+          <th scope="row">HEAD:</th>
+          <td>{{ .HEAD }}</td>
+        </tr>
+        <tr>
+          <th scope="row">Last Update:</th>
+          <td>TODO</td>
+        </tr>
+      </tbody>
+    </table>
+    <h2>Current Queue</h2>
+    <table class="table table-sm table-hover" id="region-queue">
+      <thead class="thead-light">
+        <tr>
+          <th scope="col">Owner</th>
+          <th scope="col">Changeset</th>
+          <th scope="col">Flags</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{ range $serie := .series }}
+        <tr>
+          <td colspan="3" class="{{ if not ($serie | isAutoSubmittable) }}table-primary{{ else }}table-success{{ end }}">Serie with {{ len $serie.ChangeSets }} changes</td>
+        </tr>
+        {{ range $changeset := $serie.ChangeSets}}
+        <tr>
+          <td>{{ $changeset.OwnerName }}</td>
+          <td>
+            <strong>{{ $changeset.Subject }}</strong> (<a href="{{ changesetURL $changeset }}" target="_blank">#{{ $changeset.Number }}</a>)<br />
+            <small><code>{{ $changeset.CommitID }}</code></small>
+          </td>
+          <td>
             <span>
-                {{ if $changeset.IsVerified }}<span class="badge badge-success badge-pill">+1 (CI)</span>{{ end }}
-                {{ if $changeset.IsCodeReviewed }}<span class="badge badge-info badge-pill">+2 (CR)</span>{{ end }}
+              {{ if $changeset.IsVerified }}<span class="badge badge-success badge-pill">+1 (CI)</span>{{ end }}
+              {{ if $changeset.IsCodeReviewed }}<span class="badge badge-info badge-pill">+2 (CR)</span>{{ end }}
             </span>
-        </td>
-      </tr>
-      {{ end }}
-      {{ end }}
-    </tbody>
-  </table>
+          </td>
+        </tr>
+        {{ end }}
+        <tr>
+          <td colspan="3">&nbsp;</td>
+        </tr>
+        {{ end }}
+      </tbody>
+    </table>
+
+    <h2 id="region-log">Log goes here</h2>
+  </div>
 </body>
 </html>

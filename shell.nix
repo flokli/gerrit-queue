@@ -6,6 +6,7 @@ let
 in
   pkgs.mkShell {
     buildInputs = [
-        pkgs.statik
+      pkgs.go_1_12
+      pkgs.statik
     ];
   }

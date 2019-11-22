@@ -1,0 +1,13 @@
+steps:
+  - command: |
+      . /var/lib/buildkite-agent/.nix-profile/etc/profile.d/nix.sh
+      # produces a ./gerrit-queue
+      nix-shell --run ./.buildkite/build.sh
+
+      mkdir -p out
+      mv ./gerrit-queue out/gerrit-queue-$(git describe --tags)
+
+    label: "Build (linux/amd64)"
+    timeout: 30
+    artifact_paths:
+      - "out/*"

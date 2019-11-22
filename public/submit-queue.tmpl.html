@@ -9,35 +9,39 @@
   <h1>Gerrit Submit Queue</h1>
   <h2>{{ .projectName }}/{{ .branchName }} is at {{ printf "%.7s" .HEAD }}</h2>
   <h2>Current Queue:</h2>
-  <div class="card-columns">
 
-  {{ range $serie := .series }}
-
-  <div class="card" style="width: 18rem">
-  <div class="list-group">
-    {{ range $changeset := $serie.ChangeSets}}
-    <div class="list-group-item{{ if not ($serie | isAutoSubmittable) }} disabled{{ end }}">
-      <div class="d-flex w-100 justify-content-between">
-        <h5>{{ $changeset.Subject }}</h5>
-        <small><a href="{{ changesetURL $changeset }}" target="_blank">#{{ $changeset.Number }}</a></small>
-      </div>
-      <div class="d-flex w-100 justify-content-between">
-          <small>{{ $changeset.OwnerName }}</small>
-          <span>
-              {{ if $changeset.IsVerified }}<span class="badge badge-success badge-pill">+1 (CI)</span>{{ end }}
-              {{ if $changeset.IsCodeReviewed }}<span class="badge badge-info badge-pill">+2 (CR)</span>{{ end }}
-          </span>
-      </div>
-      <div>
-        <code>
-          {{ $changeset.CommitID }}
-        </code>
-      </div>
-    </div>
-    {{ end }}
-  </div>
-  </div>
-  {{ end }}
-  </div>
+  <table class="table table-sm table-hover">
+    <thead>
+      <tr>
+        <th scope="col">ChangeSet</th>
+        <th scope="col">Owner</th>
+        <th scope="col">Subject &amp; CommitID</th>
+        <th scope="col">Flags</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ range $serie := .series }}
+      <tr>
+        <td colspan="4">Serie with {{ len $serie.ChangeSets }} changes{{ if not ($serie | isAutoSubmittable) }}, not auto submittable {{ end }}</th>
+      </tr>
+      {{ range $changeset := $serie.ChangeSets}}
+      <tr class="{{ if $serie | isAutoSubmittable }}table-success{{ end }}">
+        <th scope="row"><a href="{{ changesetURL $changeset }}" target="_blank">#{{ $changeset.Number }}</a></th>
+        <td>{{ $changeset.OwnerName }}</td>
+        <td>
+          <strong>{{ $changeset.Subject }}</strong><br />
+          <small><code>{{ $changeset.CommitID }}</code></small>
+        </td>
+        <td>
+            <span>
+                {{ if $changeset.IsVerified }}<span class="badge badge-success badge-pill">+1 (CI)</span>{{ end }}
+                {{ if $changeset.IsCodeReviewed }}<span class="badge badge-info badge-pill">+2 (CR)</span>{{ end }}
+            </span>
+        </td>
+      </tr>
+      {{ end }}
+      {{ end }}
+    </tbody>
+  </table>
 </body>
 </html>

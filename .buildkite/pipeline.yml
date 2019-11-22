@@ -1,0 +1,17 @@
+steps:
+  - command: |
+      . /var/lib/buildkite-agent/.nix-profile/etc/profile.d/nix.sh
+      # produces a ./gerrit-queue
+      nix-shell --run ./.buildkite/build.sh
+
+      cp ./gerrit-queue docker/gerrit-queue
+      docker build -t tweag/gerrit-queue:$(git describe --tags) docker/
+      docker push tweag/gerrit-queue:$(git describe --tags)
+
+      mkdir -p out
+      cp ./gerrit-queue out/gerrit-queue-$(git describe --tags)
+
+    label: "Build (linux/amd64)"
+    timeout: 30
+    artifact_paths:
+      - "out/*"

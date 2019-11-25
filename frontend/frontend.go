@@ -72,7 +72,7 @@ func MakeFrontend(runner *submitqueue.Runner) *Frontend {
 
 	router.GET("/", func(c *gin.Context) {
 		// FIXME: do this periodically
-		// TODO: add hyperlinks to changesets
+
 		err := submitQueue.UpdateHEAD()
 		if err != nil {
 			c.AbortWithError(http.StatusBadGateway, fmt.Errorf("unable to update HEAD"))

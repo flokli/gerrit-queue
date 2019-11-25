@@ -16,20 +16,13 @@ import (
 
 //TODO: log last update
 
-// Frontend holds a gin Engine and the Sergequeue object
-type Frontend struct {
-	Router      *gin.Engine
-	SubmitQueue *submitqueue.SubmitQueue
-}
-
 //loadTemplate loads a single template from statikFS and returns a template object
 func loadTemplate(templateName string, funcMap template.FuncMap) (*template.Template, error) {
+	tmpl := template.New(templateName).Funcs(funcMap)
 	statikFS, err := fs.New()
 	if err != nil {
 		return nil, err
 	}
-
-	tmpl := template.New(templateName).Funcs(funcMap)
 	r, err := statikFS.Open("/" + templateName)
 	if err != nil {
 		return nil, err
@@ -43,42 +36,34 @@ func loadTemplate(templateName string, funcMap template.FuncMap) (*template.Temp
 }
 
 // MakeFrontend configures the router and returns a new Frontend struct
-func MakeFrontend(runner *submitqueue.Runner) *Frontend {
+func MakeFrontend(runner *submitqueue.Runner) http.Handler {
 	router := gin.Default()
 
-	submitQueue := runner.GetSubmitQueue()
-
-	funcMap := template.FuncMap{
-		"isAutoSubmittable": func(serie *submitqueue.Serie) bool {
-			return submitQueue.IsAutoSubmittable(serie)
-		},
-		"changesetURL": func(changeset *gerrit.Changeset) string {
-			return submitQueue.GetChangesetURL(changeset)
-		},
-	}
-
-	tmpl := template.Must(loadTemplate("submit-queue.tmpl.html", funcMap))
-
-	router.SetHTMLTemplate(tmpl)
-
 	router.GET("/submit-queue.json", func(c *gin.Context) {
+		submitQueue, _, _ := runner.GetState()
 		c.JSON(http.StatusOK, submitQueue)
 	})
 
 	router.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "submit-queue.tmpl.html", gin.H{
+		submitQueue, _, _ := runner.GetState()
+
+		funcMap := template.FuncMap{
+			"isAutoSubmittable": func(serie *submitqueue.Serie) bool {
+				return submitQueue.IsAutoSubmittable(serie)
+			},
+			"changesetURL": func(changeset *gerrit.Changeset) string {
+				return submitQueue.GetChangesetURL(changeset)
+			},
+		}
+
+		tmpl := template.Must(loadTemplate("submit-queue.tmpl.html", funcMap))
+
+		tmpl.ExecuteTemplate(c.Writer, "submit-queue.tmpl.html", gin.H{
 			"series":      submitQueue.Series,
 			"projectName": submitQueue.ProjectName,
 			"branchName":  submitQueue.BranchName,
 			"HEAD":        submitQueue.HEAD,
 		})
 	})
-	return &Frontend{
-		Router:      router,
-		SubmitQueue: submitQueue,
-	}
-}
-
-func (f *Frontend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	f.Router.ServeHTTP(w, r)
+	return router
 }

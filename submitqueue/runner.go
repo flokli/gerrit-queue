@@ -20,17 +20,11 @@ func NewRunner(sq *SubmitQueue) *Runner {
 	}
 }
 
-// For the frontend to consume the data
-// TODO: extend to return all the submitQueue results
-func (r *Runner) GetResults() (*time.Time, []*Result) {
+// GetState returns a copy of all the state for the frontend
+func (r *Runner) GetState() (SubmitQueue, *time.Time, []*Result) {
 	r.mut.Lock()
 	defer r.mut.Unlock()
-	return r.currentlyRunning, r.results
-}
-
-// GetSubmitQueue returns the submit queue object, to be consumed by the frontend
-func (r *Runner) GetSubmitQueue() (*SubmitQueue) {
-	return r.submitQueue
+	return *r.submitQueue, r.currentlyRunning, r.results
 }
 
 // Trigger starts a new batch job

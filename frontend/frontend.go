@@ -42,8 +42,10 @@ func loadTemplate(templateName string, funcMap template.FuncMap) (*template.Temp
 }
 
 // MakeFrontend configures the router and returns a new Frontend struct
-func MakeFrontend(runner *submitqueue.Runner, submitQueue *submitqueue.SubmitQueue) *Frontend {
+func MakeFrontend(runner *submitqueue.Runner) *Frontend {
 	router := gin.Default()
+
+	submitQueue := runner.GetSubmitQueue()
 
 	funcMap := template.FuncMap{
 		"isAutoSubmittable": func(serie *submitqueue.Serie) bool {

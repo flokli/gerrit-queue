@@ -91,7 +91,7 @@ func main() {
 		submitQueue := submitqueue.MakeSubmitQueue(gerritClient, projectName, branchName, submitQueueTag)
 		runner := submitqueue.NewRunner(submitQueue)
 
-		handler := frontend.MakeFrontend(runner, submitQueue)
+		handler := frontend.MakeFrontend(runner)
 
 		// fetch only on first run
 		runner.Trigger(true)

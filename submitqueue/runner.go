@@ -28,6 +28,11 @@ func (r *Runner) GetResults() (*time.Time, []*Result) {
 	return r.currentlyRunning, r.results
 }
 
+// GetSubmitQueue returns the submit queue object, to be consumed by the frontend
+func (r *Runner) GetSubmitQueue() (*SubmitQueue) {
+	return r.SubmitQueue
+}
+
 // Trigger starts a new batch job
 // TODO: make sure only one batch job is started at the same time
 // if a batch job is already started, ignore the newest request

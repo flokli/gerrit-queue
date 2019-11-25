@@ -30,7 +30,7 @@ func (r *Runner) GetResults() (*time.Time, []*Result) {
 
 // GetSubmitQueue returns the submit queue object, to be consumed by the frontend
 func (r *Runner) GetSubmitQueue() (*SubmitQueue) {
-	return r.SubmitQueue
+	return r.submitQueue
 }
 
 // Trigger starts a new batch job

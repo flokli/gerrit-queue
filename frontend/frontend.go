@@ -1,7 +1,6 @@
 package frontend
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -61,23 +60,10 @@ func MakeFrontend(runner *submitqueue.Runner) *Frontend {
 	router.SetHTMLTemplate(tmpl)
 
 	router.GET("/submit-queue.json", func(c *gin.Context) {
-
-		// FIXME: do this periodically
-		err := submitQueue.UpdateHEAD()
-		if err != nil {
-			c.AbortWithError(http.StatusBadGateway, fmt.Errorf("unable to update HEAD"))
-		}
 		c.JSON(http.StatusOK, submitQueue)
 	})
 
 	router.GET("/", func(c *gin.Context) {
-		// FIXME: do this periodically
-
-		err := submitQueue.UpdateHEAD()
-		if err != nil {
-			c.AbortWithError(http.StatusBadGateway, fmt.Errorf("unable to update HEAD"))
-		}
-
 		c.HTML(http.StatusOK, "submit-queue.tmpl.html", gin.H{
 			"series":      submitQueue.Series,
 			"projectName": submitQueue.ProjectName,

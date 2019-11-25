@@ -53,16 +53,6 @@ func (s *SubmitQueue) LoadSeries(log *logrus.Logger) error {
 	return nil
 }
 
-// UpdateHEAD updates the HEAD field with the commit ID of the current HEAD
-func (s *SubmitQueue) UpdateHEAD() error {
-	HEAD, err := s.gerrit.GetHEAD(s.ProjectName, s.BranchName)
-	if err != nil {
-		return err
-	}
-	s.HEAD = HEAD
-	return nil
-}
-
 // TODO: clear submit queue tag if missing +1/+2?
 
 // IsAutoSubmittable returns true if a given Serie has all the necessary flags set

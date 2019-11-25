@@ -45,7 +45,7 @@ func MakeFrontend(runner *submitqueue.Runner) http.Handler {
 	})
 
 	router.GET("/", func(c *gin.Context) {
-		submitQueue, _, _ := runner.GetState()
+		submitQueue, currentlyRunning, results := runner.GetState()
 
 		funcMap := template.FuncMap{
 			"isAutoSubmittable": func(serie *submitqueue.Serie) bool {
@@ -63,6 +63,8 @@ func MakeFrontend(runner *submitqueue.Runner) http.Handler {
 			"projectName": submitQueue.ProjectName,
 			"branchName":  submitQueue.BranchName,
 			"HEAD":        submitQueue.HEAD,
+			"currentlyRunning": currentlyRunning,
+			"results": results,
 		})
 	})
 	return router

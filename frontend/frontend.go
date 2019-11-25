@@ -14,6 +14,8 @@ import (
 	"github.com/tweag/gerrit-queue/submitqueue"
 )
 
+//TODO: log last update
+
 // Frontend holds a gin Engine and the Sergequeue object
 type Frontend struct {
 	Router      *gin.Engine

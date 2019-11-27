@@ -13,6 +13,7 @@ type Runner struct {
 	results          []*Result
 }
 
+// NewRunner initializes a new runner object
 func NewRunner(sq *SubmitQueue) *Runner {
 	return &Runner{
 		submitQueue: sq,

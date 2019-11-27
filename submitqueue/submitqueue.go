@@ -214,6 +214,12 @@ func (s *SubmitQueue) Run(fetchOnly bool) *Result {
 		r.Error = err
 		return r
 	}
+
+	// copy series to result object
+	for _, serie := range s.Series {
+		r.Series = append(r.Series, *serie)
+	}
+
 	if len(s.Series) == 0 {
 		// Nothing to do!
 		log.Warn("Nothing to do here")

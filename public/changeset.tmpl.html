@@ -1,0 +1,15 @@
+{{ define "changeset" }}
+<tr>
+    <td>{{ .OwnerName }}</td>
+    <td>
+    <strong>{{ .Subject }}</strong> (<a href="{{ changesetURL . }}" target="_blank">#{{ .Number }}</a>)<br />
+    <small><code>{{ .CommitID }}</code></small>
+    </td>
+    <td>
+    <span>
+        {{ if .IsVerified }}<span class="badge badge-success badge-pill">+1 (CI)</span>{{ end }}
+        {{ if .IsCodeReviewed }}<span class="badge badge-info badge-pill">+2 (CR)</span>{{ end }}
+    </span>
+    </td>
+</tr>
+{{ end }}

@@ -70,20 +70,8 @@
         <tr>
           <td colspan="3" class="{{ if not ($serie | isAutoSubmittable) }}table-primary{{ else }}table-success{{ end }}">Serie with {{ len $serie.ChangeSets }} changes</td>
         </tr>
-        {{ range $changeset := $serie.ChangeSets}}
-        <tr>
-          <td>{{ $changeset.OwnerName }}</td>
-          <td>
-            <strong>{{ $changeset.Subject }}</strong> (<a href="{{ changesetURL $changeset }}" target="_blank">#{{ $changeset.Number }}</a>)<br />
-            <small><code>{{ $changeset.CommitID }}</code></small>
-          </td>
-          <td>
-            <span>
-              {{ if $changeset.IsVerified }}<span class="badge badge-success badge-pill">+1 (CI)</span>{{ end }}
-              {{ if $changeset.IsCodeReviewed }}<span class="badge badge-info badge-pill">+2 (CR)</span>{{ end }}
-            </span>
-          </td>
-        </tr>
+        {{ range $changeset := $serie.ChangeSets }}
+        {{ block "changeset" $changeset }}{{ end }}
         {{ end }}
         <tr>
           <td colspan="3">&nbsp;</td>

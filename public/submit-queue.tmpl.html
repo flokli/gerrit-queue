@@ -42,13 +42,13 @@
         </tr>
         <tr>
           <th scope="row">HEAD:</th>
-	  <td><code>{{ .HEAD }}</code></td>
+	        <td><code>{{ .HEAD }}</code></td>
         </tr>
         <tr>
           <th scope="row">Currently running:</th>
 	  <td>
 	    {{ if .currentlyRunning }}
-	    started at {{ .currentlyRunning.Format "Jan 02, 2006 15:04:05 UTC" }}
+	    started at {{ .currentlyRunning.Format "2006-01-02 15:04:05 UTC" }}
 	    {{ else }}
 	    <span class="text-secondary">Not currently running</span>
 	    {{ end }}
@@ -56,24 +56,21 @@
         </tr>
       </tbody>
     </table>
-    <h2 id="region-queue">Current Queue</h2>
-    {{ block "series" .series }}{{ end }}
-
-    <h2 id="region-log">History</h2>
+    <h2 id="region-log">Log</h2>
 
     <div id="history-accordion">
         {{ range $i, $result := .results }}
         <div class="card">
           <div class="card-header">
-            <h5 class="mb-0">
-              <button class="btn btn-link" data-toggle="collapse" data-target="history-collapse-{{ $i }}">
-                Result Item {{ $i }}, {{ $result.StartTime.Format "Jan 02, 2006 15:04:05 UTC"}} - {{ $result.EndTime.Format "Jan 02, 2006 15:04:05 UTC"}}
+            <h5>
+              <button class="btn btn-link" data-toggle="collapse" data-target="#history-collapse-{{ $i }}">
+                Result Item {{ $i }}, {{ $result.StartTime.Format "2006-01-02 15:04:05 UTC"}} - {{ $result.EndTime.Format "2006-01-02 15:04:05 UTC"}}
               </button>
             </h5>
           </div>
-          <div id="history-collapse-{{ $i }}" class="collapse show" data-parent="#history-accordion">
+          <div id="history-collapse-{{ $i }}" class="collapse {{ if eq $i 0 }} show{{ end }}" data-parent="#history-accordion">
             <div class="card-body">
-              <!--// TODO: currentlyRunning, HEAD-->
+              <!--// TODO: HEAD-->
               {{ if $result.Error }}
               <div class="text-danger">{{ $result.Error }}</div>
               {{ end }}

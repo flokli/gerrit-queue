@@ -76,11 +76,16 @@ func MakeFrontend(runner *submitqueue.Runner) http.Handler {
 		}, funcMap))
 
 		tmpl.ExecuteTemplate(c.Writer, "submit-queue.tmpl.html", gin.H{
-			"series":      submitQueue.Series,
+			// Config
 			"projectName": submitQueue.ProjectName,
 			"branchName":  submitQueue.BranchName,
-			"HEAD":        submitQueue.HEAD,
+
+			// State
 			"currentlyRunning": currentlyRunning,
+			"series":           submitQueue.Series,
+			"HEAD":             submitQueue.HEAD,
+
+			// History
 			"results": results,
 		})
 	})

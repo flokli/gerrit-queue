@@ -70,6 +70,7 @@ func MakeFrontend(runner *submitqueue.Runner) http.Handler {
 
 		tmpl := template.Must(loadTemplate([]string{
 			"submit-queue.tmpl.html",
+			"series.tmpl.html",
 			"serie.tmpl.html",
 			"changeset.tmpl.html",
 		}, funcMap))

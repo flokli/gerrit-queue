@@ -1,0 +1,16 @@
+{{ define "series" }}
+<table class="table table-sm table-hover" id="region-queue">
+<thead class="thead-light">
+    <tr>
+    <th scope="col">Owner</th>
+    <th scope="col">Changeset</th>
+    <th scope="col">Flags</th>
+    </tr>
+</thead>
+<tbody>
+    {{ range $serie := . }}
+    {{ block "serie" $serie }}{{ end }}
+    {{ end }}
+</tbody>
+</table>
+{{ end }}

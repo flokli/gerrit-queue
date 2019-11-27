@@ -57,20 +57,7 @@
       </tbody>
     </table>
     <h2>Current Queue</h2>
-    <table class="table table-sm table-hover" id="region-queue">
-      <thead class="thead-light">
-        <tr>
-          <th scope="col">Owner</th>
-          <th scope="col">Changeset</th>
-          <th scope="col">Flags</th>
-        </tr>
-      </thead>
-      <tbody>
-        {{ range $serie := .series }}
-        {{ block "serie" $serie }}{{ end }}
-        {{ end }}
-      </tbody>
-    </table>
+    {{ block "series" .series }}{{ end }}
 
     <h2 id="region-log">History</h2>
   </div>

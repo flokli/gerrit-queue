@@ -1,0 +1,11 @@
+{{ define "serie" }}
+<tr>
+<td colspan="3" class="{{ if not (. | isAutoSubmittable) }}table-primary{{ else }}table-success{{ end }}">Serie with {{ len .ChangeSets }} changes</td>
+</tr>
+{{ range $changeset := .ChangeSets }}
+{{ block "changeset" $changeset }}{{ end }}
+{{ end }}
+<tr>
+<td colspan="3">&nbsp;</td>
+</tr>
+{{ end }}

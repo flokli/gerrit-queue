@@ -67,15 +67,7 @@
       </thead>
       <tbody>
         {{ range $serie := .series }}
-        <tr>
-          <td colspan="3" class="{{ if not ($serie | isAutoSubmittable) }}table-primary{{ else }}table-success{{ end }}">Serie with {{ len $serie.ChangeSets }} changes</td>
-        </tr>
-        {{ range $changeset := $serie.ChangeSets }}
-        {{ block "changeset" $changeset }}{{ end }}
-        {{ end }}
-        <tr>
-          <td colspan="3">&nbsp;</td>
-        </tr>
+        {{ block "serie" $serie }}{{ end }}
         {{ end }}
       </tbody>
     </table>

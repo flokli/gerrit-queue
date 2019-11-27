@@ -74,11 +74,11 @@
               {{ if $result.Error }}
               <div class="text-danger">{{ $result.Error }}</div>
               {{ end }}
-              <ul>
-                {{ range $logEntry := $result.LogEntries }}
-                <li>{{ $logEntry }}</li>
-                {{ end }}
-              </ul>
+              <div class="bg-dark text-white">
+                  {{ range $logEntry := $result.LogEntries }}
+                  <code>{{ $logEntry }}</code>
+                  {{ end }}
+              </div>
               {{ block "series" $result.Series}}{{ end }}
             </div>
           </div>

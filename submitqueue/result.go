@@ -17,6 +17,7 @@ type Result struct {
 	Series     []Serie
 	Error      error
 	startTime  time.Time
+	HEAD       string
 }
 
 // MakeResult produces a new Result struct,

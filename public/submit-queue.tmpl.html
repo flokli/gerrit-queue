@@ -41,10 +41,6 @@
           <td>{{ .branchName }}</td>
         </tr>
         <tr>
-          <th scope="row">HEAD:</th>
-	        <td><code>{{ .HEAD }}</code></td>
-        </tr>
-        <tr>
           <th scope="row">Currently running:</th>
 	  <td>
 	    {{ if .currentlyRunning }}
@@ -70,16 +66,34 @@
           </div>
           <div id="history-collapse-{{ $i }}" class="collapse {{ if eq $i 0 }} show{{ end }}" data-parent="#history-accordion">
             <div class="card-body">
-              <!--// TODO: HEAD-->
-              {{ if $result.Error }}
-              <div class="text-danger">{{ $result.Error }}</div>
-              {{ end }}
-              <div class="bg-dark text-white">
-                  {{ range $logEntry := $result.LogEntries }}
-                  <code>{{ $logEntry }}</code>
+              <table class="table">
+                <tbody>
+                  <tr>
+                    <th scope="row">HEAD:</th>
+                    <td><code>{{ .HEAD }}</code></td>
+                  </tr>
+                  {{ if $result.Error }}
+                  <tr>
+                    <th scope="row">Error:</th>
+                    <td class="text-danger">{{ $result.Error }}</td>
+                    </td>
+                  </tr>
                   {{ end }}
-              </div>
-              {{ block "series" $result.Series}}{{ end }}
+                  <tr>
+                    <th scope="row">Log:</th>
+                    <td class="bg-dark text-white">
+                        {{ range $logEntry := $result.LogEntries }}
+                        <code>{{ $logEntry }}</code><br />
+                        {{ end }}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td colspan="2">
+                      {{ block "series" $result.Series}}{{ end }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

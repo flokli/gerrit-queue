@@ -171,6 +171,7 @@ func (s *SubmitQueue) Run(fetchOnly bool) *Result {
 		return r
 	}
 	s.HEAD = commitID
+	r.HEAD = commitID
 
 	err = s.LoadSeries(log)
 	if err != nil {

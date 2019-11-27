@@ -163,13 +163,23 @@ type Result struct {
 	LogEntries []*logrus.Entry
 	Series     []Serie
 	Error      error
+	startTime  time.Time
+}
+
+func MakeResult() *Result {
+	return &Result{
+		startTime: time.Now(),
+	}
 }
 
 func (r Result) StartTime() time.Time {
-	return r.LogEntries[0].Time
+	return r.startTime
 }
 
 func (r Result) EndTime() time.Time {
+	if len(r.LogEntries) == 0 {
+		return r.startTime
+	}
 	return r.LogEntries[len(r.LogEntries)-1].Time
 }
 
@@ -184,7 +194,7 @@ func (r *Result) Levels() []logrus.Level {
 
 // Run starts the submit and rebase logic.
 func (s *SubmitQueue) Run(fetchOnly bool) *Result {
-	r := &Result{}
+	r := MakeResult()
 	//TODO: log decisions made and add to some ring buffer
 	var err error
 

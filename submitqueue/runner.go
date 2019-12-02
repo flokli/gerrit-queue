@@ -92,7 +92,10 @@ func (r *Runner) Trigger(fetchOnly bool) error {
 	}
 
 	// Prepare the work by creating a local cache of gerrit state
-	r.gerrit.Refresh()
+	err := r.gerrit.Refresh()
+	if err != nil {
+		return err
+	}
 
 	// early return if we only want to fetch
 	if fetchOnly {

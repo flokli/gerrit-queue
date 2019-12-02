@@ -11,10 +11,9 @@ import (
 	"github.com/rakyll/statik/fs"
 
 	"github.com/tweag/gerrit-queue/gerrit"
+	"github.com/tweag/gerrit-queue/misc"
 	_ "github.com/tweag/gerrit-queue/statik" // register static assets
 	"github.com/tweag/gerrit-queue/submitqueue"
-
-	"github.com/apex/log/handlers/memory"
 )
 
 //loadTemplate loads a list of templates, relative to the statikFS root, and a FuncMap, and returns a template object
@@ -48,7 +47,7 @@ func loadTemplate(templateNames []string, funcMap template.FuncMap) (*template.T
 }
 
 // MakeFrontend returns a http.Handler
-func MakeFrontend(memoryHandler *memory.Handler, gerritClient *gerrit.Client, runner *submitqueue.Runner) http.Handler {
+func MakeFrontend(rotatingLogHandler *misc.RotatingLogHandler, gerritClient *gerrit.Client, runner *submitqueue.Runner) http.Handler {
 	router := gin.Default()
 
 	projectName := gerritClient.GetProjectName()
@@ -88,7 +87,7 @@ func MakeFrontend(memoryHandler *memory.Handler, gerritClient *gerrit.Client, ru
 			"HEAD":             HEAD,
 
 			// History
-			"memory": memoryHandler,
+			"memory": rotatingLogHandler,
 		})
 	})
 	return router

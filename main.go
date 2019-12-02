@@ -10,12 +10,12 @@ import (
 
 	"github.com/tweag/gerrit-queue/frontend"
 	"github.com/tweag/gerrit-queue/gerrit"
+	"github.com/tweag/gerrit-queue/misc"
 	"github.com/tweag/gerrit-queue/submitqueue"
 
 	"github.com/urfave/cli"
 
 	"github.com/apex/log"
-	"github.com/apex/log/handlers/memory"
 	"github.com/apex/log/handlers/multi"
 	"github.com/apex/log/handlers/text"
 )
@@ -78,11 +78,11 @@ func main() {
 		},
 	}
 
-	memoryLogHandler := memory.New()
+	rotatingLogHandler := misc.NewRotatingLogHandler(10000)
 	l := &log.Logger{
 		Handler: multi.New(
 			text.New(os.Stderr),
-			memoryLogHandler,
+			rotatingLogHandler,
 		),
 		Level: log.DebugLevel,
 	}
@@ -96,7 +96,7 @@ func main() {
 
 		runner := submitqueue.NewRunner(l, gerrit, submitQueueTag)
 
-		handler := frontend.MakeFrontend(memoryLogHandler, gerrit, runner)
+		handler := frontend.MakeFrontend(rotatingLogHandler, gerrit, runner)
 
 		// fetch only on first run
 		runner.Trigger(fetchOnly)

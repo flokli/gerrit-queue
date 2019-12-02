@@ -58,9 +58,11 @@ func NewClient(logger *log.Logger, URL, username, password, projectName, branchN
 		return nil, err
 	}
 	return &Client{
-		client:  goGerritClient,
-		baseURL: URL,
-		logger:  logger,
+		client:      goGerritClient,
+		baseURL:     URL,
+		logger:      logger,
+		projectName: projectName,
+		branchName:  branchName,
 	}, nil
 }
 

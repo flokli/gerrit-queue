@@ -42,63 +42,37 @@
         </tr>
         <tr>
           <th scope="row">Currently running:</th>
-	  <td>
-	    {{ if .currentlyRunning }}
-	    started at {{ .currentlyRunning.Format "2006-01-02 15:04:05 UTC" }}
-	    {{ else }}
-	    <span class="text-secondary">Not currently running</span>
-	    {{ end }}
-	  </td>
+          <td>
+            {{ if .currentlyRunning }}yes{{ else }}no{{ end }}
+          </td>
+        </tr>
+        <tr>
+          <th scope="row">HEAD:</th>
+          <td>
+            {{ if .currentlyRunning }}{{ .HEAD }}{{ else }}-{{ end }}
+          </td>
         </tr>
       </tbody>
     </table>
-    <h2 id="region-log">Log</h2>
 
-    <div id="history-accordion">
-        {{ range $i, $result := .results }}
-        <div class="card">
-          <div class="card-header">
-            <h5>
-              <button class="btn btn-link" data-toggle="collapse" data-target="#history-collapse-{{ $i }}">
-                Result Item {{ $i }}, {{ $result.StartTime.Format "2006-01-02 15:04:05 UTC"}} - {{ $result.EndTime.Format "2006-01-02 15:04:05 UTC"}}
-              </button>
-            </h5>
-          </div>
-          <div id="history-collapse-{{ $i }}" class="collapse {{ if eq $i 0 }} show{{ end }}" data-parent="#history-accordion">
-            <div class="card-body">
-              <table class="table">
-                <tbody>
-                  <tr>
-                    <th scope="row">HEAD:</th>
-                    <td><code>{{ .HEAD }}</code></td>
-                  </tr>
-                  {{ if $result.Error }}
-                  <tr>
-                    <th scope="row">Error:</th>
-                    <td class="text-danger">{{ $result.Error }}</td>
-                    </td>
-                  </tr>
-                  {{ end }}
-                  <tr>
-                    <th scope="row">Log:</th>
-                    <td class="bg-dark text-white">
-                        {{ range $logEntry := $result.LogEntries }}
-                        <code>{{ $logEntry }}</code><br />
-                        {{ end }}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td colspan="2">
-                      {{ block "series" $result.Series}}{{ end }}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-        {{ end }}
-    </div>
-  </div> <!-- .container -->
+    <h2 id="region-wipserie">wip Serie</h2>
+    {{ if .wipSerie }}
+    {{ block "serie" .wipSerie }}{{ end }}
+    {{ else }}
+    - 
+    {{ end }}
+
+    <h2 id="region-log">Log</h2>
+    <table class="table">
+      <tbody>
+        <tr>
+          <td class="bg-dark text-white">
+            {{ range $entry := .memory.Entries }}
+            <code>{{ $entry }}</code><br />
+            {{ end }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
 </body>
 </html>

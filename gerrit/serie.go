@@ -1,18 +1,16 @@
-package submitqueue
+package gerrit
 
 import (
 	"fmt"
 	"strings"
 
-	"github.com/tweag/gerrit-queue/gerrit"
-
-	log "github.com/sirupsen/logrus"
+	"github.com/apex/log"
 )
 
 // Serie represents a list of successive changesets with an unbroken parent -> child relation,
 // starting from the parent.
 type Serie struct {
-	ChangeSets []*gerrit.Changeset
+	ChangeSets []*Changeset
 }
 
 // GetParentCommitIDs returns the parent commit IDs
@@ -33,9 +31,7 @@ func (s *Serie) GetLeafCommitID() (string, error) {
 
 // CheckIntegrity checks that the series contains a properly ordered and connected chain of commits
 func (s *Serie) CheckIntegrity() error {
-	logger := log.WithFields(log.Fields{
-		"serie": s,
-	})
+	logger := log.WithField("serie", s)
 	// an empty serie is invalid
 	if len(s.ChangeSets) == 0 {
 		return fmt.Errorf("An empty serie is invalid")
@@ -71,7 +67,7 @@ func (s *Serie) CheckIntegrity() error {
 
 // FilterAllChangesets applies a filter function on all of the changesets in the series.
 // returns true if it returns true for all changesets, false otherwise
-func (s *Serie) FilterAllChangesets(f func(c *gerrit.Changeset) bool) bool {
+func (s *Serie) FilterAllChangesets(f func(c *Changeset) bool) bool {
 	for _, changeset := range s.ChangeSets {
 		if f(changeset) == false {
 			return false

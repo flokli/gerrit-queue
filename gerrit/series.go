@@ -1,34 +1,33 @@
-package submitqueue
+package gerrit
 
 import (
 	"sort"
 
-	"github.com/tweag/gerrit-queue/gerrit"
-
-	"github.com/sirupsen/logrus"
+	"github.com/apex/log"
 )
 
 // AssembleSeries consumes a list of `Changeset`, and groups them together to series
 //
+// We initially put every Changeset in its own Serie
+//
 // As we have no control over the order of the passed changesets,
-// we maintain two lookup tables,
-// mapLeafToSerie, which allows to lookup a serie by its leaf commit id,
-// to append to an existing serie
-// and mapParentToSeries, which allows to lookup all series having a certain parent commit id,
-// to prepend to any of the existing series
-// if we can't find anything, we create a new series
-func AssembleSeries(changesets []*gerrit.Changeset, log *logrus.Logger) ([]*Serie, error) {
+// we maintain a lookup table, mapLeafToSerie,
+// which allows to lookup a serie by its leaf commit id
+// We concat series in a fixpoint approach
+// because both appending and prepending is much more complex.
+// Concatenation moves changesets of the later changeset in the previous one
+// in a cleanup phase, we remove orphaned series (those without any changesets inside)
+// afterwards, we do an integrity check, just to be on the safe side.
+func AssembleSeries(changesets []*Changeset, log *log.Logger) ([]*Serie, error) {
 	series := make([]*Serie, 0)
 	mapLeafToSerie := make(map[string]*Serie, 0)
 
 	for _, changeset := range changesets {
-		logger := log.WithFields(logrus.Fields{
-			"changeset": changeset.String(),
-		})
+		logger := log.WithField("changeset", changeset.String())
 
 		logger.Debug("creating initial serie")
 		serie := &Serie{
-			ChangeSets: []*gerrit.Changeset{changeset},
+			ChangeSets: []*Changeset{changeset},
 		}
 		series = append(series, serie)
 		mapLeafToSerie[changeset.CommitID] = serie
@@ -72,7 +71,7 @@ func AssembleSeries(changesets []*gerrit.Changeset, log *logrus.Logger) ([]*Seri
 				mapLeafToSerie[myLeafCommitID] = otherSerie
 
 				// orphan our serie
-				serie.ChangeSets = []*gerrit.Changeset{}
+				serie.ChangeSets = []*Changeset{}
 				// remove the orphaned serie from the lookup table
 				delete(mapLeafToSerie, myLeafCommitID)
 
@@ -90,9 +89,7 @@ func AssembleSeries(changesets []*gerrit.Changeset, log *logrus.Logger) ([]*Seri
 
 	// Check integrity, just to be on the safe side.
 	for _, serie := range series {
-		logger := log.WithFields(logrus.Fields{
-			"serie": serie.String(),
-		})
+		logger := log.WithField("serie", serie.String())
 		logger.Debugf("checking integrity")
 		err := serie.CheckIntegrity()
 		if err != nil {

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	goGerrit "github.com/andygrunwald/go-gerrit"
-	log "github.com/sirupsen/logrus"
+	"github.com/apex/log"
 )
 
 // Changeset represents a single changeset
@@ -14,8 +14,8 @@ type Changeset struct {
 	changeInfo      *goGerrit.ChangeInfo
 	ChangeID        string
 	Number          int
-	IsVerified      bool
-	IsCodeReviewed  bool
+	Verified        int
+	CodeReviewed    int
 	HashTags        []string
 	CommitID        string
 	ParentCommitIDs []string
@@ -29,8 +29,8 @@ func MakeChangeset(changeInfo *goGerrit.ChangeInfo) *Changeset {
 		changeInfo:      changeInfo,
 		ChangeID:        changeInfo.ChangeID,
 		Number:          changeInfo.Number,
-		IsVerified:      isVerified(changeInfo),
-		IsCodeReviewed:  isCodeReviewed(changeInfo),
+		Verified:        labelInfoToInt(changeInfo.Labels["Verified"]),
+		CodeReviewed:    labelInfoToInt(changeInfo.Labels["Code-Review"]),
 		HashTags:        changeInfo.Hashtags,
 		CommitID:        changeInfo.CurrentRevision, // yes, this IS the commit ID.
 		ParentCommitIDs: getParentCommitIDs(changeInfo),
@@ -38,12 +38,6 @@ func MakeChangeset(changeInfo *goGerrit.ChangeInfo) *Changeset {
 		Subject:         changeInfo.Subject,
 	}
 }
-
-// MakeMockChangeset creates a mock changeset
-// func MakeMockChangeset(isVerified, IsCodeReviewed bool, hashTags []string, commitID string, parentCommitIDs []string, ownerName, subject string) *Changeset {
-// 	//TODO impl
-// 	return nil
-//}
 
 // HasTag returns true if a Changeset has the given tag.
 func (c *Changeset) HasTag(tag string) bool {
@@ -54,6 +48,18 @@ func (c *Changeset) HasTag(tag string) bool {
 		}
 	}
 	return false
+}
+
+// IsVerified returns true if the changeset passed CI,
+// that's when somebody left the Approved (+1) on the "Verified" label
+func (c *Changeset) IsVerified() bool {
+	return c.Verified == 1
+}
+
+// IsCodeReviewed returns true if the changeset passed code review,
+// that's when somebody left the Recommended (+2) on the "Code-Review" label
+func (c *Changeset) IsCodeReviewed() bool {
+	return c.CodeReviewed == 2
 }
 
 func (c *Changeset) String() string {
@@ -76,18 +82,21 @@ func FilterChangesets(changesets []*Changeset, f func(*Changeset) bool) []*Chang
 	return newChangesets
 }
 
-// isVerified returns true if the code passed CI,
-// that's when somebody left the Approved (+1) on the "Verified" label
-func isVerified(changeInfo *goGerrit.ChangeInfo) bool {
-	labels := changeInfo.Labels
-	return labels["Verified"].Approved.AccountID != 0
-}
-
-// isCodeReviewed returns true if the code passed code review,
-// that's when somebody left the Recommended (+2) on the "Code-Review" label
-func isCodeReviewed(changeInfo *goGerrit.ChangeInfo) bool {
-	labels := changeInfo.Labels
-	return labels["Code-Review"].Recommended.AccountID != 0
+// labelInfoToInt converts a goGerrit.LabelInfo to -2…+2 int
+func labelInfoToInt(labelInfo goGerrit.LabelInfo) int {
+	if labelInfo.Recommended.AccountID != 0 {
+		return 2
+	}
+	if labelInfo.Approved.AccountID != 0 {
+		return 1
+	}
+	if labelInfo.Disliked.AccountID != 0 {
+		return -1
+	}
+	if labelInfo.Rejected.AccountID != 0 {
+		return -2
+	}
+	return 0
 }
 
 // getParentCommitIDs returns the parent commit IDs of the goGerrit.ChangeInfo

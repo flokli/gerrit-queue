@@ -14,16 +14,13 @@ import (
 
 	"github.com/urfave/cli"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/apex/log"
+	"github.com/apex/log/handlers/memory"
+	"github.com/apex/log/handlers/multi"
+	"github.com/apex/log/handlers/text"
 )
 
 func main() {
-	// configure logging
-	log.SetFormatter(&log.TextFormatter{})
-	//log.SetFormatter(&log.JSONFormatter{})
-	log.SetOutput(os.Stdout)
-	log.SetLevel(log.DebugLevel)
-
 	var URL, username, password, projectName, branchName, submitQueueTag string
 	var fetchOnly bool
 
@@ -81,25 +78,33 @@ func main() {
 		},
 	}
 
+	memoryLogHandler := memory.New()
+	l := &log.Logger{
+		Handler: multi.New(
+			text.New(os.Stderr),
+			memoryLogHandler,
+		),
+		Level: log.DebugLevel,
+	}
+
 	app.Action = func(c *cli.Context) error {
-		gerritClient, err := gerrit.NewClient(URL, username, password)
+		gerrit, err := gerrit.NewClient(l, URL, username, password, projectName, branchName)
 		if err != nil {
 			return err
 		}
-		log.Printf("Successfully connected to gerrit at %s", URL)
+		log.Infof("Successfully connected to gerrit at %s", URL)
 
-		submitQueue := submitqueue.MakeSubmitQueue(gerritClient, projectName, branchName, submitQueueTag)
-		runner := submitqueue.NewRunner(submitQueue)
+		runner := submitqueue.NewRunner(l, gerrit, submitQueueTag)
 
-		handler := frontend.MakeFrontend(runner)
+		handler := frontend.MakeFrontend(memoryLogHandler, gerrit, runner)
 
 		// fetch only on first run
-		runner.Trigger(true)
+		runner.Trigger(fetchOnly)
 
 		// ticker
 		go func() {
 			for {
-				time.Sleep(time.Minute * 10)
+				time.Sleep(time.Minute * 5)
 				runner.Trigger(fetchOnly)
 			}
 		}()
@@ -111,7 +116,7 @@ func main() {
 
 		server.ListenAndServe()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf(err.Error())
 		}
 
 		return nil
@@ -119,21 +124,9 @@ func main() {
 
 	err := app.Run(os.Args)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(err.Error())
 	}
 
-	// mux := http.NewServeMux()
-
-	// options := &gerrit.EventsLogOptions{}
-	// events, _, _, err := gerritClient.EventsLog.GetEvents(options)
-
 	// TODOS:
-	// - create submit queue user
 	// - handle event log, either by accepting webhooks, or by streaming events?
-
-	//n := negroni.Classic()
-	//n.UseHandler(mux)
-
-	//fmt.Println("Listening on :3000…")
-	//http.ListenAndServe(":3000", n)
 }

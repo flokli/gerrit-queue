@@ -13,9 +13,9 @@ import (
 	"github.com/tweag/gerrit-queue/gerrit"
 	_ "github.com/tweag/gerrit-queue/statik" // register static assets
 	"github.com/tweag/gerrit-queue/submitqueue"
-)
 
-//TODO: log last update
+	"github.com/apex/log/handlers/memory"
+)
 
 //loadTemplate loads a list of templates, relative to the statikFS root, and a FuncMap, and returns a template object
 func loadTemplate(templateNames []string, funcMap template.FuncMap) (*template.Template, error) {
@@ -47,46 +47,48 @@ func loadTemplate(templateNames []string, funcMap template.FuncMap) (*template.T
 	return tmpl, nil
 }
 
-// MakeFrontend configures the router and returns a new Frontend struct
-func MakeFrontend(runner *submitqueue.Runner) http.Handler {
+// MakeFrontend returns a http.Handler
+func MakeFrontend(memoryHandler *memory.Handler, gerritClient *gerrit.Client, runner *submitqueue.Runner) http.Handler {
 	router := gin.Default()
 
-	router.GET("/submit-queue.json", func(c *gin.Context) {
-		submitQueue, _, _ := runner.GetState()
-		c.JSON(http.StatusOK, submitQueue)
-	})
+	projectName := gerritClient.GetProjectName()
+	branchName := gerritClient.GetBranchName()
 
 	router.GET("/", func(c *gin.Context) {
-		submitQueue, currentlyRunning, results := runner.GetState()
+		var wipSerie *gerrit.Serie = nil
+		HEAD := ""
+		currentlyRunning := runner.IsCurrentlyRunning()
+
+		// don't trigger operations requiring a lock
+		if !currentlyRunning {
+			wipSerie = runner.GetWIPSerie()
+			HEAD = gerritClient.GetHEAD()
+		}
 
 		funcMap := template.FuncMap{
-			"isAutoSubmittable": func(serie *submitqueue.Serie) bool {
-				return submitQueue.IsAutoSubmittable(serie)
-			},
 			"changesetURL": func(changeset *gerrit.Changeset) string {
-				return submitQueue.GetChangesetURL(changeset)
+				return gerritClient.GetChangesetURL(changeset)
 			},
 		}
 
 		tmpl := template.Must(loadTemplate([]string{
 			"submit-queue.tmpl.html",
-			"series.tmpl.html",
 			"serie.tmpl.html",
 			"changeset.tmpl.html",
 		}, funcMap))
 
 		tmpl.ExecuteTemplate(c.Writer, "submit-queue.tmpl.html", gin.H{
 			// Config
-			"projectName": submitQueue.ProjectName,
-			"branchName":  submitQueue.BranchName,
+			"projectName": projectName,
+			"branchName":  branchName,
 
 			// State
 			"currentlyRunning": currentlyRunning,
-			"series":           submitQueue.Series,
-			"HEAD":             submitQueue.HEAD,
+			"wipSerie":         wipSerie,
+			"HEAD":             HEAD,
 
 			// History
-			"results": results,
+			"memory": memoryHandler,
 		})
 	})
 	return router

@@ -23,6 +23,7 @@ import (
 func main() {
 	var URL, username, password, projectName, branchName, submitQueueTag string
 	var fetchOnly bool
+	var triggerInterval int
 
 	app := cli.NewApp()
 	app.Name = "gerrit-queue"
@@ -70,6 +71,13 @@ func main() {
 			Destination: &submitQueueTag,
 			Value:       "submit_me",
 		},
+		cli.IntFlag{
+			Name:        "trigger-interval",
+			Usage:       "How often we should trigger ourselves (interval in seconds)",
+			EnvVar:      "SUBMIT_QUEUE_TRIGGER_INTERVAL",
+			Destination: &triggerInterval,
+			Value:       600,
+		},
 		cli.BoolFlag{
 			Name:        "fetch-only",
 			Usage:       "Only fetch changes and assemble queue, but don't actually write",
@@ -104,7 +112,7 @@ func main() {
 		// ticker
 		go func() {
 			for {
-				time.Sleep(time.Minute * 5)
+				time.Sleep(time.Duration(triggerInterval) * time.Minute)
 				runner.Trigger(fetchOnly)
 			}
 		}()

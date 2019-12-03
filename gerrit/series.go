@@ -18,14 +18,14 @@ import (
 // Concatenation moves changesets of the later changeset in the previous one
 // in a cleanup phase, we remove orphaned series (those without any changesets inside)
 // afterwards, we do an integrity check, just to be on the safe side.
-func AssembleSeries(changesets []*Changeset, log *log.Logger) ([]*Serie, error) {
+func AssembleSeries(changesets []*Changeset, logger *log.Logger) ([]*Serie, error) {
 	series := make([]*Serie, 0)
 	mapLeafToSerie := make(map[string]*Serie, 0)
 
 	for _, changeset := range changesets {
-		logger := log.WithField("changeset", changeset.String())
+		l := logger.WithField("changeset", changeset.String())
 
-		logger.Debug("creating initial serie")
+		l.Debug("creating initial serie")
 		serie := &Serie{
 			ChangeSets: []*Changeset{changeset},
 		}
@@ -34,29 +34,33 @@ func AssembleSeries(changesets []*Changeset, log *log.Logger) ([]*Serie, error) 
 	}
 
 	// Combine series using a fixpoint approach, with a max iteration count.
-	log.Debug("glueing together phase")
+	logger.Debug("glueing together phase")
 	for i := 1; i < 100; i++ {
 		didUpdate := false
-		log.Debugf("at iteration %d", i)
-		for _, serie := range series {
-			logger := log.WithField("serie", serie.String())
+		logger.Debugf("at iteration %d", i)
+		for j, serie := range series {
+			l := logger.WithFields(log.Fields{
+				"i":     i,
+				"j":     j,
+				"serie": serie.String(),
+			})
 			parentCommitIDs, err := serie.GetParentCommitIDs()
 			if err != nil {
 				return series, err
 			}
 			if len(parentCommitIDs) != 1 {
 				// We can't append merge commits to other series
-				logger.Infof("No single parent, skipping.")
+				l.Infof("No single parent, skipping.")
 				continue
 			}
 			parentCommitID := parentCommitIDs[0]
-			logger.Debug("Looking for a predecessor.")
+			l.Debug("Looking for a predecessor.")
 			// if there's another serie that has this parent as a leaf, glue together
 			if otherSerie, ok := mapLeafToSerie[parentCommitID]; ok {
 				if otherSerie == serie {
 					continue
 				}
-				logger := logger.WithField("otherSerie", otherSerie)
+				l = l.WithField("otherSerie", otherSerie)
 
 				myLeafCommitID, err := serie.GetLeafCommitID()
 				if err != nil {
@@ -64,7 +68,7 @@ func AssembleSeries(changesets []*Changeset, log *log.Logger) ([]*Serie, error) 
 				}
 
 				// append our changesets to the other serie
-				logger.Debug("Splicing together.")
+				l.Debug("Splicing together.")
 				otherSerie.ChangeSets = append(otherSerie.ChangeSets, serie.ChangeSets...)
 
 				delete(mapLeafToSerie, parentCommitID)
@@ -77,23 +81,23 @@ func AssembleSeries(changesets []*Changeset, log *log.Logger) ([]*Serie, error) 
 
 				didUpdate = true
 			} else {
-				logger.Debug("Not found.")
+				l.Debug("Not found.")
 			}
 		}
 		series = removeOrphanedSeries(series)
 		if !didUpdate {
-			log.Infof("converged after %d iterations", i)
+			logger.Infof("converged after %d iterations", i)
 			break
 		}
 	}
 
 	// Check integrity, just to be on the safe side.
 	for _, serie := range series {
-		logger := log.WithField("serie", serie.String())
-		logger.Debugf("checking integrity")
+		l := logger.WithField("serie", serie.String())
+		l.Debugf("checking integrity")
 		err := serie.CheckIntegrity()
 		if err != nil {
-			logger.Errorf("checking integrity failed: %s", err)
+			l.Errorf("checking integrity failed: %s", err)
 		}
 	}
 	return series, nil

@@ -112,7 +112,7 @@ func main() {
 		// ticker
 		go func() {
 			for {
-				time.Sleep(time.Duration(triggerInterval) * time.Minute)
+				time.Sleep(time.Duration(triggerInterval) * time.Second)
 				runner.Trigger(fetchOnly)
 			}
 		}()

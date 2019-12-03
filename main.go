@@ -107,13 +107,19 @@ func main() {
 		handler := frontend.MakeFrontend(rotatingLogHandler, gerrit, runner)
 
 		// fetch only on first run
-		runner.Trigger(fetchOnly)
+		err = runner.Trigger(fetchOnly)
+		if err != nil {
+			log.Error(err.Error())
+		}
 
 		// ticker
 		go func() {
 			for {
 				time.Sleep(time.Duration(triggerInterval) * time.Second)
-				runner.Trigger(fetchOnly)
+				err = runner.Trigger(fetchOnly)
+				if err != nil {
+					log.Error(err.Error())
+				}
 			}
 		}()
 

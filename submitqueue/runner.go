@@ -35,11 +35,11 @@ func NewRunner(logger *log.Logger, gerrit *gerrit.Client, submitQueueTag string)
 // isAutoSubmittable determines if something could be autosubmitted, potentially requiring a rebase
 // for this, it needs to:
 //  * have the auto-submit label
-//  * has +2 review
-//  * has +1 CI
+//  * have gerrit's 'submittable' field set to true
+// it doesn't check if the series is rebased on HEAD
 func (r *Runner) isAutoSubmittable(s *gerrit.Serie) bool {
 	for _, c := range s.ChangeSets {
-		if c.Verified != 1 || c.CodeReviewed != 2 || !c.HasTag(r.submitQueueTag) {
+		if c.Submittable != true || !c.HasTag(r.submitQueueTag) {
 			return false
 		}
 	}
@@ -76,20 +76,6 @@ func (r *Runner) Trigger(fetchOnly bool) error {
 		r.currentlyRunning = false
 		r.mut.Unlock()
 	}()
-
-	// isReady means a series is auto submittbale and rebased on HEAD
-	isReady := func(s *gerrit.Serie) bool {
-		return r.isAutoSubmittable(s) && r.gerrit.SerieIsRebasedOnHEAD(s)
-	}
-
-	isAwaitingCI := func(s *gerrit.Serie) bool {
-		for _, c := range s.ChangeSets {
-			if !(c.Verified == 0 && c.CodeReviewed != 2 && c.HasTag(r.submitQueueTag)) {
-				return false
-			}
-		}
-		return true
-	}
 
 	// Prepare the work by creating a local cache of gerrit state
 	err := r.gerrit.Refresh()
@@ -133,17 +119,36 @@ func (r *Runner) Trigger(fetchOnly bool) error {
 			l := r.logger.WithField("wipSerie", r.wipSerie)
 			l.Info("Checking wipSerie")
 
+			// discard wipSeries not rebased on HEAD
+			// we rebase them at the end of the loop, so this means master advanced without going through the submit queue
 			if !r.gerrit.SerieIsRebasedOnHEAD(r.wipSerie) {
-				// check for chaos monkeys
 				l.Warnf("HEAD has moved to {} while still waiting for wipSerie, discarding it", r.gerrit.GetHEAD())
 				r.wipSerie = nil
-			} else if isAwaitingCI(r.wipSerie) {
-				// the changeset is still awaiting for CI feedback
-				l.Info("keep waiting for wipSerie")
+				continue
+			}
 
-				// break the loop, take a look at it at the next trigger.
-				break
-			} else if isReady(r.wipSerie) {
+			// we now need to check CI feedback:
+			// wipSerie might have failed CI in the meantime
+			for _, c := range r.wipSerie.ChangeSets {
+				if c.Verified < 0 {
+					l.WithField("failingChangeset", c).Warnf("wipSerie failed CI in the meantime, discarding.")
+					r.wipSerie = nil
+					continue
+				}
+			}
+
+			// it might still be waiting for CI
+			for _, c := range r.wipSerie.ChangeSets {
+				if c.Verified == 0 {
+					l.WithField("pendingChangeset", c).Warnf("still waiting for CI feedback in wipSerie, going back to sleep.")
+					// break the loop, take a look at it at the next trigger.
+					break
+				}
+			}
+
+			// it might be autosubmittable
+			if r.isAutoSubmittable(r.wipSerie) {
+				l.Infof("submitting wipSerie")
 				// if the WIP changeset is ready (auto submittable and rebased on HEAD), submit
 				for _, changeset := range r.wipSerie.ChangeSets {
 					_, err := r.gerrit.SubmitChangeset(changeset)
@@ -156,6 +161,7 @@ func (r *Runner) Trigger(fetchOnly bool) error {
 				r.wipSerie = nil
 			} else {
 				// should never be reached?!
+				log.Warnf("reached branch we should never reach")
 			}
 		}
 
@@ -165,7 +171,9 @@ func (r *Runner) Trigger(fetchOnly bool) error {
 		//  * has +2 review
 		//  * has +1 CI
 		//  * is rebased on master
-		serie := r.gerrit.FindSerie(isReady)
+		serie := r.gerrit.FindSerie(func(s *gerrit.Serie) bool {
+			return r.isAutoSubmittable(s) && s.ChangeSets[0].ParentCommitIDs[0] == r.gerrit.GetHEAD()
+		})
 		if serie != nil {
 			r.logger.WithField("serie", serie).Info("Found serie to submit without necessary rebase")
 			r.wipSerie = serie
@@ -179,7 +187,7 @@ func (r *Runner) Trigger(fetchOnly bool) error {
 		//  * is NOT rebased on master
 		serie = r.gerrit.FindSerie(r.isAutoSubmittable)
 		if serie == nil {
-			r.logger.Info("nothing to do, going back to sleep.")
+			r.logger.Info("no more submittable series found, going back to sleep.")
 			break
 		}
 
@@ -195,8 +203,8 @@ func (r *Runner) Trigger(fetchOnly bool) error {
 			}
 			head = changeset.CommitID
 		}
-		// it doesn't matter this serie isn't in its rebased state,
-		// we'll refetch it on the beginning of the next trigger anyways
+		// we don't need to care about updating the rebased changesets or getting the updated HEAD,
+		// as we'll refetch it on the beginning of the next trigger anyways
 		r.wipSerie = serie
 		break
 	}

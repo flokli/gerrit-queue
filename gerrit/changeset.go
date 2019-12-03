@@ -16,6 +16,7 @@ type Changeset struct {
 	Number          int
 	Verified        int
 	CodeReviewed    int
+	Submittable     bool
 	HashTags        []string
 	CommitID        string
 	ParentCommitIDs []string
@@ -31,6 +32,7 @@ func MakeChangeset(changeInfo *goGerrit.ChangeInfo) *Changeset {
 		Number:          changeInfo.Number,
 		Verified:        labelInfoToInt(changeInfo.Labels["Verified"]),
 		CodeReviewed:    labelInfoToInt(changeInfo.Labels["Code-Review"]),
+		Submittable:     changeInfo.Submittable,
 		HashTags:        changeInfo.Hashtags,
 		CommitID:        changeInfo.CurrentRevision, // yes, this IS the commit ID.
 		ParentCommitIDs: getParentCommitIDs(changeInfo),
@@ -65,7 +67,8 @@ func (c *Changeset) IsCodeReviewed() bool {
 func (c *Changeset) String() string {
 	var b bytes.Buffer
 	b.WriteString("Changeset")
-	b.WriteString(fmt.Sprintf("(commitID: %.7s, author: %s, subject: %s)", c.CommitID, c.OwnerName, c.Subject))
+	b.WriteString(fmt.Sprintf("(commitID: %.7s, author: %s, subject: %s, submittable: %v)",
+		c.CommitID, c.OwnerName, c.Subject, c.Submittable))
 	return b.String()
 }
 

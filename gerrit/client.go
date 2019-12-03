@@ -15,6 +15,7 @@ var additionalFields = []string{
 	"CURRENT_REVISION",
 	"CURRENT_COMMIT",
 	"DETAILED_ACCOUNTS",
+	"SUBMITTABLE",
 }
 
 // IClient defines the gerrit.Client interface

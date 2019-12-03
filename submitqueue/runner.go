@@ -142,7 +142,7 @@ func (r *Runner) Trigger(fetchOnly bool) error {
 				if c.Verified == 0 {
 					l.WithField("pendingChangeset", c).Warnf("still waiting for CI feedback in wipSerie, going back to sleep.")
 					// break the loop, take a look at it at the next trigger.
-					break
+					return nil
 				}
 			}
 

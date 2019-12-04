@@ -97,7 +97,7 @@ func (c *Client) Refresh() error {
 		return err
 	}
 
-	c.logger.Warnf("assembling series…")
+	c.logger.Infof("assembling series…")
 	series, err := AssembleSeries(changesets, c.logger)
 	if err != nil {
 		return err

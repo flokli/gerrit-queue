@@ -63,15 +63,24 @@
     {{ end }}
 
     <h2 id="region-log">Log</h2>
-    <table class="table">
+    <table class="table .table-sm">
       <tbody>
-        <tr>
-          <td class="bg-dark text-white">
-            {{ range $entry := .memory.Entries }}
-            <code>{{ $entry }}</code><br />
-            {{ end }}
+        {{ range $entry := .memory.Entries }}
+        <tr class="bg-dark {{ levelToClasses $entry.Level }}">
+          <td rowspan="2">
+            {{ $entry.Timestamp.Format "2006-01-02 15:04:05 UTC"}}
+          </td>
+          <td>{{ $entry.Level }}</td>
+          <td>
+            <code class="{{ levelToClasses $entry.Level }}">{{ $entry.Message }}</code><br />
           </td>
         </tr>
+        <tr class="bg-dark {{ levelToClasses $entry.Level }}">
+          <td colspan="2">
+              <code class="{{ levelToClasses $entry.Level }}">{{ fieldsToJSON $entry.Fields }}</code><br />
+          </td>
+        </tr>
+        {{ end }}
       </tbody>
     </table>
 </body>

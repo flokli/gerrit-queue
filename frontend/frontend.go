@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"encoding/json"
 
 	"html/template"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rakyll/statik/fs"
+
+	"github.com/apex/log"
 
 	"github.com/tweag/gerrit-queue/gerrit"
 	"github.com/tweag/gerrit-queue/misc"
@@ -67,6 +70,26 @@ func MakeFrontend(rotatingLogHandler *misc.RotatingLogHandler, gerritClient *ger
 		funcMap := template.FuncMap{
 			"changesetURL": func(changeset *gerrit.Changeset) string {
 				return gerritClient.GetChangesetURL(changeset)
+			},
+			"levelToClasses": func(level log.Level) string {
+				switch level {
+				case log.DebugLevel:
+					return "text-muted"
+				case log.InfoLevel:
+					return "text-info"
+				case log.WarnLevel:
+					return "text-warning"
+				case log.ErrorLevel:
+					return "text-danger"
+				case log.FatalLevel:
+					return "text-danger"
+				default:
+					return "text-white"
+				}
+			},
+			"fieldsToJSON": func(fields log.Fields) string {
+				jsonData, _ := json.Marshal(fields)
+				return string(jsonData)
 			},
 		}
 

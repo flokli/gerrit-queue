@@ -1,11 +1,19 @@
 {{ define "serie" }}
-<tr>
-<td colspan="3" class="table-success">Serie with {{ len .ChangeSets }} changes</td>
-</tr>
-{{ range $changeset := .ChangeSets }}
-{{ block "changeset" $changeset }}{{ end }}
-{{ end }}
-<tr>
-<td colspan="3">&nbsp;</td>
-</tr>
+<table class="table table-sm table-hover">
+<thead class="thead-light">
+    <tr>
+    <th scope="col">Owner</th>
+    <th scope="col">Changeset</th>
+    <th scope="col">Flags</th>
+    </tr>
+</thead>
+<tbody>
+    <tr>
+        <td colspan="3" class="table-success">Serie with {{ len .ChangeSets }} changes</td>
+    </tr>
+    {{ range $changeset := .ChangeSets }}
+    {{ block "changeset" $changeset }}{{ end }}
+    {{ end }}
+</tbody>
+</table>
 {{ end }}

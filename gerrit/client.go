@@ -141,17 +141,16 @@ func (c *Client) fetchChangeset(changeID string) (*Changeset, error) {
 }
 
 // SubmitChangeset submits a given changeset, and returns a changeset afterwards.
-// TODO: update HEAD
 func (c *Client) SubmitChangeset(changeset *Changeset) (*Changeset, error) {
 	changeInfo, _, err := c.client.Changes.SubmitChange(changeset.ChangeID, &goGerrit.SubmitInput{})
 	if err != nil {
 		return nil, err
 	}
+	c.head = changeInfo.CurrentRevision
 	return c.fetchChangeset(changeInfo.ChangeID)
 }
 
 // RebaseChangeset rebases a given changeset on top of a given ref
-// TODO: update HEAD
 func (c *Client) RebaseChangeset(changeset *Changeset, ref string) (*Changeset, error) {
 	changeInfo, _, err := c.client.Changes.RebaseChange(changeset.ChangeID, &goGerrit.RebaseInput{
 		Base: ref,

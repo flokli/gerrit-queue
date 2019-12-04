@@ -19,7 +19,7 @@
             <a class="nav-link" href="#region-info">Info</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#region-queue">Current Queue</a>
+            <a class="nav-link" href="#region-wipserie">WIP Serie</a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="#region-log">Log</a>
@@ -49,13 +49,13 @@
         <tr>
           <th scope="row">HEAD:</th>
           <td>
-            {{ if .currentlyRunning }}{{ .HEAD }}{{ else }}-{{ end }}
+            {{ if .HEAD }}{{ .HEAD }}{{ else }}-{{ end }}
           </td>
         </tr>
       </tbody>
     </table>
 
-    <h2 id="region-wipserie">wip Serie</h2>
+    <h2 id="region-wipserie">WIP Serie</h2>
     {{ if .wipSerie }}
     {{ block "serie" .wipSerie }}{{ end }}
     {{ else }}

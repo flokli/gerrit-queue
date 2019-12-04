@@ -71,12 +71,12 @@ func MakeFrontend(rotatingLogHandler *misc.RotatingLogHandler, gerritClient *ger
 		}
 
 		tmpl := template.Must(loadTemplate([]string{
-			"submit-queue.tmpl.html",
+			"index.tmpl.html",
 			"serie.tmpl.html",
 			"changeset.tmpl.html",
 		}, funcMap))
 
-		tmpl.ExecuteTemplate(c.Writer, "submit-queue.tmpl.html", gin.H{
+		tmpl.ExecuteTemplate(c.Writer, "index.tmpl.html", gin.H{
 			// Config
 			"projectName": projectName,
 			"branchName":  branchName,

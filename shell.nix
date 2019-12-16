@@ -7,6 +7,5 @@ in
   pkgs.mkShell {
     buildInputs = [
       pkgs.go_1_12
-      pkgs.statik
     ];
   }

@@ -12,4 +12,7 @@ buildGoModule {
   preBuild = ''
     go generate ./...
   '';
+
+  # create a static binary
+  CGO_ENABLED = 0;
 }

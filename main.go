@@ -19,7 +19,7 @@ import (
 )
 
 func main() {
-	var URL, username, password, projectName, branchName, submitQueueTag string
+	var URL, username, password, projectName, branchName string
 	var fetchOnly bool
 	var triggerInterval int
 
@@ -62,13 +62,6 @@ func main() {
 			Destination: &branchName,
 			Value:       "master",
 		},
-		cli.StringFlag{
-			Name:        "submit-queue-tag",
-			Usage:       "the tag used to submit something to the submit queue",
-			EnvVar:      "SUBMIT_QUEUE_TAG",
-			Destination: &submitQueueTag,
-			Value:       "submit_me",
-		},
 		cli.IntFlag{
 			Name:        "trigger-interval",
 			Usage:       "How often we should trigger ourselves (interval in seconds)",
@@ -100,7 +93,7 @@ func main() {
 		}
 		log.Infof("Successfully connected to gerrit at %s", URL)
 
-		runner := submitqueue.NewRunner(l, gerrit, submitQueueTag)
+		runner := submitqueue.NewRunner(l, gerrit)
 
 		handler := frontend.MakeFrontend(rotatingLogHandler, gerrit, runner)
 

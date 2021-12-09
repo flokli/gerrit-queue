@@ -16,8 +16,8 @@ type Changeset struct {
 	Number          int
 	Verified        int
 	CodeReviewed    int
+	Autosubmit      int
 	Submittable     bool
-	HashTags        []string
 	CommitID        string
 	ParentCommitIDs []string
 	OwnerName       string
@@ -32,8 +32,8 @@ func MakeChangeset(changeInfo *goGerrit.ChangeInfo) *Changeset {
 		Number:          changeInfo.Number,
 		Verified:        labelInfoToInt(changeInfo.Labels["Verified"]),
 		CodeReviewed:    labelInfoToInt(changeInfo.Labels["Code-Review"]),
+		Autosubmit:      labelInfoToInt(changeInfo.Labels["Autosubmit"]),
 		Submittable:     changeInfo.Submittable,
-		HashTags:        changeInfo.Hashtags,
 		CommitID:        changeInfo.CurrentRevision, // yes, this IS the commit ID.
 		ParentCommitIDs: getParentCommitIDs(changeInfo),
 		OwnerName:       changeInfo.Owner.Name,
@@ -41,15 +41,13 @@ func MakeChangeset(changeInfo *goGerrit.ChangeInfo) *Changeset {
 	}
 }
 
-// HasTag returns true if a Changeset has the given tag.
-func (c *Changeset) HasTag(tag string) bool {
-	hashTags := c.HashTags
-	for _, hashTag := range hashTags {
-		if hashTag == tag {
-			return true
-		}
-	}
-	return false
+// IsAutosubmit returns true if the changeset is intended to be
+// automatically submitted by gerrit-queue.
+//
+// This is determined by the Change Owner setting +1 on the
+// "Autosubmit" label.
+func (c *Changeset) IsAutosubmit() bool {
+	return c.Autosubmit == 1
 }
 
 // IsVerified returns true if the changeset passed CI,

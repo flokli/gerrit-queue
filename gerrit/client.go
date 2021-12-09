@@ -26,7 +26,6 @@ type IClient interface {
 	GetChangesetURL(changeset *Changeset) string
 	SubmitChangeset(changeset *Changeset) (*Changeset, error)
 	RebaseChangeset(changeset *Changeset, ref string) (*Changeset, error)
-	RemoveTag(changeset *Changeset, tag string) (*Changeset, error)
 	ChangesetIsRebasedOnHEAD(changeset *Changeset) bool
 	SerieIsRebasedOnHEAD(serie *Serie) bool
 	FilterSeries(filter func(s *Serie) bool) []*Serie
@@ -159,21 +158,6 @@ func (c *Client) RebaseChangeset(changeset *Changeset, ref string) (*Changeset, 
 		return changeset, err
 	}
 	return c.fetchChangeset(changeInfo.ChangeID)
-}
-
-// RemoveTag removes the submit queue tag from a changeset and updates gerrit
-// we never add, that's something users should do in the GUI.
-func (c *Client) RemoveTag(changeset *Changeset, tag string) (*Changeset, error) {
-	hashTags := changeset.HashTags
-	newHashTags := []string{}
-	for _, hashTag := range hashTags {
-		if hashTag != tag {
-			newHashTags = append(newHashTags, hashTag)
-		}
-	}
-	// TODO: implement setting hashtags api in go-gerrit and use here
-	// https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#set-hashtags
-	return changeset, nil
 }
 
 // GetBaseURL returns the gerrit base URL

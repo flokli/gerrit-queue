@@ -8,7 +8,7 @@ await CI feedback on a rebased changeset, then one clicks submit, and
 effectively makes everybody else rebase again. `gerrit-queue` is meant to
 remove these races to master.
 
-Developers can add a specific tag `submit_me` to all changesets in a series,
+Developers can set the `Autosubmit` label to `+1` on all changesets in a series,
 and if all preconditions on are met ("submittable" in gerrit speech, this
 usually means passing CI and passing Code Review), `gerrit-queue` takes care of
 rebasing and submitting it to master

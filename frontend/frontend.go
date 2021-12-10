@@ -8,7 +8,6 @@ import (
 
 	"html/template"
 
-	"github.com/gin-gonic/gin"
 	"github.com/rakyll/statik/fs"
 
 	"github.com/apex/log"
@@ -51,12 +50,11 @@ func loadTemplate(templateNames []string, funcMap template.FuncMap) (*template.T
 
 // MakeFrontend returns a http.Handler
 func MakeFrontend(rotatingLogHandler *misc.RotatingLogHandler, gerritClient *gerrit.Client, runner *submitqueue.Runner) http.Handler {
-	router := gin.Default()
-
 	projectName := gerritClient.GetProjectName()
 	branchName := gerritClient.GetBranchName()
 
-	router.GET("/", func(c *gin.Context) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		var wipSerie *gerrit.Serie = nil
 		HEAD := ""
 		currentlyRunning := runner.IsCurrentlyRunning()
@@ -99,7 +97,7 @@ func MakeFrontend(rotatingLogHandler *misc.RotatingLogHandler, gerritClient *ger
 			"changeset.tmpl.html",
 		}, funcMap))
 
-		tmpl.ExecuteTemplate(c.Writer, "index.tmpl.html", gin.H{
+		tmpl.ExecuteTemplate(w, "index.tmpl.html", map[string]interface{}{
 			// Config
 			"projectName": projectName,
 			"branchName":  branchName,
@@ -113,5 +111,5 @@ func MakeFrontend(rotatingLogHandler *misc.RotatingLogHandler, gerritClient *ger
 			"memory": rotatingLogHandler,
 		})
 	})
-	return router
+	return mux
 }

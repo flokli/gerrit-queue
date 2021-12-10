@@ -130,6 +130,10 @@ func (r *Runner) Trigger(fetchOnly bool) error {
 			// we now need to check CI feedback:
 			// wipSerie might have failed CI in the meantime
 			for _, c := range r.wipSerie.ChangeSets {
+				if c == nil {
+					l.Error("BUG: changeset is nil")
+					continue
+				}
 				if c.Verified < 0 {
 					l.WithField("failingChangeset", c).Warnf("wipSerie failed CI in the meantime, discarding.")
 					r.wipSerie = nil
@@ -139,6 +143,10 @@ func (r *Runner) Trigger(fetchOnly bool) error {
 
 			// it might still be waiting for CI
 			for _, c := range r.wipSerie.ChangeSets {
+				if c == nil {
+					l.Error("BUG: changeset is nil")
+					continue
+				}
 				if c.Verified == 0 {
 					l.WithField("pendingChangeset", c).Warnf("still waiting for CI feedback in wipSerie, going back to sleep.")
 					// break the loop, take a look at it at the next trigger.
@@ -160,8 +168,8 @@ func (r *Runner) Trigger(fetchOnly bool) error {
 				}
 				r.wipSerie = nil
 			} else {
-				// should never be reached?!
-				log.Warnf("reached branch we should never reach")
+				l.Error("BUG: wipSerie is not autosubmittable")
+				r.wipSerie = nil
 			}
 		}
 

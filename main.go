@@ -1,5 +1,3 @@
-//go:generate statik -f
-
 package main
 
 import (

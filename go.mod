@@ -1,4 +1,4 @@
-module github.com/tweag/gerrit-queue
+module github.com/flokli/gerrit-queue
 
 go 1.16
 

@@ -11,9 +11,9 @@ import (
 
 	"github.com/apex/log"
 
-	"github.com/tweag/gerrit-queue/gerrit"
-	"github.com/tweag/gerrit-queue/misc"
-	"github.com/tweag/gerrit-queue/submitqueue"
+	"github.com/flokli/gerrit-queue/gerrit"
+	"github.com/flokli/gerrit-queue/misc"
+	"github.com/flokli/gerrit-queue/submitqueue"
 )
 
 //go:embed templates

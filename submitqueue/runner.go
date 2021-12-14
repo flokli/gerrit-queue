@@ -122,7 +122,7 @@ func (r *Runner) Trigger(fetchOnly bool) error {
 			// discard wipSerie not rebased on HEAD
 			// we rebase them at the end of the loop, so this means master advanced without going through the submit queue
 			if !r.gerrit.SerieIsRebasedOnHEAD(r.wipSerie) {
-				l.Warnf("HEAD has moved to {} while still waiting for wipSerie, discarding it", r.gerrit.GetHEAD())
+				l.Warnf("HEAD has moved to %v while still waiting for wipSerie, discarding it", r.gerrit.GetHEAD())
 				r.wipSerie = nil
 				continue
 			}

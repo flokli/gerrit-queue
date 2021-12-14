@@ -6,7 +6,7 @@ import (
 
 	"github.com/apex/log"
 
-	"github.com/tweag/gerrit-queue/gerrit"
+	"github.com/flokli/gerrit-queue/gerrit"
 )
 
 // Runner is a struct existing across the lifetime of a single run of the submit queue

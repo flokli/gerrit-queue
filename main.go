@@ -6,10 +6,10 @@ import (
 
 	"net/http"
 
-	"github.com/tweag/gerrit-queue/frontend"
-	"github.com/tweag/gerrit-queue/gerrit"
-	"github.com/tweag/gerrit-queue/misc"
-	"github.com/tweag/gerrit-queue/submitqueue"
+	"github.com/flokli/gerrit-queue/frontend"
+	"github.com/flokli/gerrit-queue/gerrit"
+	"github.com/flokli/gerrit-queue/misc"
+	"github.com/flokli/gerrit-queue/submitqueue"
 
 	"github.com/urfave/cli"
 

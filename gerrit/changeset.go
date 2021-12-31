@@ -84,6 +84,7 @@ func FilterChangesets(changesets []*Changeset, f func(*Changeset) bool) []*Chang
 }
 
 // labelInfoToInt converts a goGerrit.LabelInfo to -2…+2 int
+// its behaviour for other labels is undefined.
 func labelInfoToInt(labelInfo goGerrit.LabelInfo) int {
 	if labelInfo.Recommended.AccountID != 0 {
 		return 2

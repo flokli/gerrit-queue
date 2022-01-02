@@ -20,26 +20,24 @@ type Runner struct {
 	wipSerie         *gerrit.Serie
 	logger           *log.Logger
 	gerrit           *gerrit.Client
-	submitQueueTag   string // the tag used to submit something to the submit queue
 }
 
 // NewRunner creates a new Runner struct
-func NewRunner(logger *log.Logger, gerrit *gerrit.Client, submitQueueTag string) *Runner {
+func NewRunner(logger *log.Logger, gerrit *gerrit.Client) *Runner {
 	return &Runner{
-		logger:         logger,
-		gerrit:         gerrit,
-		submitQueueTag: submitQueueTag,
+		logger: logger,
+		gerrit: gerrit,
 	}
 }
 
 // isAutoSubmittable determines if something could be autosubmitted, potentially requiring a rebase
 // for this, it needs to:
-//  * have the auto-submit label
+//  * have the "Autosubmit" label set to +1
 //  * have gerrit's 'submittable' field set to true
 // it doesn't check if the series is rebased on HEAD
 func (r *Runner) isAutoSubmittable(s *gerrit.Serie) bool {
 	for _, c := range s.ChangeSets {
-		if c.Submittable != true || !c.HasTag(r.submitQueueTag) {
+		if c.Submittable != true || !c.IsAutosubmit() {
 			return false
 		}
 	}

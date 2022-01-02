@@ -8,10 +8,35 @@ await CI feedback on a rebased changeset, then one clicks submit, and
 effectively makes everybody else rebase again. `gerrit-queue` is meant to
 remove these races to master.
 
-Developers can add a specific tag `submit_me` to all changesets in a series,
-and if all preconditions on are met ("submittable" in gerrit speech, this
-usually means passing CI and passing Code Review), `gerrit-queue` takes care of
-rebasing and submitting it to master
+Developers can set the `Autosubmit` customized label to `+1` on all changesets
+in a series, and if all preconditions on are met ("submittable" in gerrit
+speech, this usually means passing CI and passing Code Review),
+`gerrit-queue` takes care of rebasing and submitting it to master.
+
+Refer to the [Customized Label Gerrit docs](https://gerrit-review.googlesource.com/Documentation/config-labels.html#label_custom)
+on how to create the `Autosubmit` label and configure permissions, but
+something like the following in your projects `project.config` should suffice:
+
+```
+[access "refs/*"]
+  # […]
+	#
+	# Set exclusive because only the change owner should be able to do this:
+	exclusiveGroupPermissions = label-Autosubmit
+	label-Autosubmit = +0..+1 group Change Owner
+[label "Autosubmit"]
+	function = NoOp
+	value = 0 Submit manually
+	value = +1 Submit automatically
+	allowPostSubmit = false
+	copyAnyScore = true
+	defaultValue = 0
+```
+
+Note that if a setup uses `rules.pl`, the label will not be rendered unless it
+is configured as `may(_)` in the rules.
+
+See [TVL CL 4241](https://cl.tvl.fyi/c/depot/+/4241) for an example.
 
 ## How it works
 Gerrit only knows about Changesets (and some relations to other changesets),

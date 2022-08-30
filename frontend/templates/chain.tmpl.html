@@ -1,4 +1,4 @@
-{{ define "serie" }}
+{{ define "chain" }}
 <table class="table table-sm table-hover">
 <thead class="thead-light">
     <tr>
@@ -9,7 +9,7 @@
 </thead>
 <tbody>
     <tr>
-        <td colspan="3" class="table-success">Serie with {{ len .ChangeSets }} changes</td>
+        <td colspan="3" class="table-success">Chain with {{ len .ChangeSets }} changes</td>
     </tr>
     {{ range $changeset := .ChangeSets }}
     {{ block "changeset" $changeset }}{{ end }}

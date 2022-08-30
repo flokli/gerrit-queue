@@ -27,9 +27,9 @@ type IClient interface {
 	SubmitChangeset(changeset *Changeset) (*Changeset, error)
 	RebaseChangeset(changeset *Changeset, ref string) (*Changeset, error)
 	ChangesetIsRebasedOnHEAD(changeset *Changeset) bool
-	SerieIsRebasedOnHEAD(serie *Serie) bool
-	FilterSeries(filter func(s *Serie) bool) []*Serie
-	FindSerie(filter func(s *Serie) bool) *Serie
+	ChainIsRebasedOnHEAD(chain *Chain) bool
+	FilterChains(filter func(s *Chain) bool) []*Chain
+	FindFirstChain(filter func(s *Chain) bool) *Chain
 }
 
 var _ IClient = &Client{}
@@ -41,7 +41,7 @@ type Client struct {
 	baseURL     string
 	projectName string
 	branchName  string
-	series      []*Serie
+	chains      []*Chain
 	head        string
 }
 
@@ -96,13 +96,13 @@ func (c *Client) Refresh() error {
 		return err
 	}
 
-	c.logger.Infof("assembling series…")
-	series, err := AssembleSeries(changesets, c.logger)
+	c.logger.Infof("assembling chains")
+	chains, err := AssembleChain(changesets, c.logger)
 	if err != nil {
 		return err
 	}
-	series = SortSeries(series)
-	c.series = series
+	chains = SortChains(chains)
+	c.chains = chains
 	return nil
 }
 
@@ -188,32 +188,32 @@ func (c *Client) ChangesetIsRebasedOnHEAD(changeset *Changeset) bool {
 	return changeset.ParentCommitIDs[0] == c.head
 }
 
-// SerieIsRebasedOnHEAD returns true if the whole series is rebased on the current HEAD
-// this is already the case if the first changeset in the series is rebased on the current HEAD
-func (c *Client) SerieIsRebasedOnHEAD(serie *Serie) bool {
-	// an empty serie should not exist
-	if len(serie.ChangeSets) == 0 {
+// ChainIsRebasedOnHEAD returns true if the whole chain is rebased on the current HEAD
+// this is already the case if the first changeset in the chain is rebased on the current HEAD
+func (c *Client) ChainIsRebasedOnHEAD(chain *Chain) bool {
+	// an empty chain should not exist
+	if len(chain.ChangeSets) == 0 {
 		return false
 	}
-	return c.ChangesetIsRebasedOnHEAD(serie.ChangeSets[0])
+	return c.ChangesetIsRebasedOnHEAD(chain.ChangeSets[0])
 }
 
-// FilterSeries returns a subset of all Series, passing the given filter function
-func (c *Client) FilterSeries(filter func(s *Serie) bool) []*Serie {
-	matchedSeries := []*Serie{}
-	for _, serie := range c.series {
-		if filter(serie) {
-			matchedSeries = append(matchedSeries, serie)
+// FilterChains returns a subset of all chains, passing the given filter function
+func (c *Client) FilterChains(filter func(s *Chain) bool) []*Chain {
+	matchedChains := []*Chain{}
+	for _, chain := range c.chains {
+		if filter(chain) {
+			matchedChains = append(matchedChains, chain)
 		}
 	}
-	return matchedSeries
+	return matchedChains
 }
 
-// FindSerie returns the first serie that matches the filter, or nil if none was found
-func (c *Client) FindSerie(filter func(s *Serie) bool) *Serie {
-	for _, serie := range c.series {
-		if filter(serie) {
-			return serie
+// FindFirstChain returns the first chain that matches the filter, or nil if none was found
+func (c *Client) FindFirstChain(filter func(s *Chain) bool) *Chain {
+	for _, chain := range c.chains {
+		if filter(chain) {
+			return chain
 		}
 	}
 	return nil

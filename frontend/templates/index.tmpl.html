@@ -19,7 +19,7 @@
             <a class="nav-link" href="#region-info">Info</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#region-wipserie">WIP Serie</a>
+            <a class="nav-link" href="#region-wipchain">WIP Chain</a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="#region-log">Log</a>
@@ -55,9 +55,9 @@
       </tbody>
     </table>
 
-    <h2 id="region-wipserie">WIP Serie</h2>
-    {{ if .wipSerie }}
-    {{ block "serie" .wipSerie }}{{ end }}
+    <h2 id="region-wipchain">WIP Chain</h2>
+    {{ if .wipChain }}
+    {{ block "chain" .wipChain }}{{ end }}
     {{ else }}
     - 
     {{ end }}

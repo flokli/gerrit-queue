@@ -19,8 +19,8 @@ import (
 //go:embed templates
 var templates embed.FS
 
-//loadTemplate loads a list of templates, relative to the templates root, and a
-//FuncMap, and returns a template object
+// loadTemplate loads a list of templates, relative to the templates root, and a
+// FuncMap, and returns a template object
 func loadTemplate(templateNames []string, funcMap template.FuncMap) (*template.Template, error) {
 	if len(templateNames) == 0 {
 		return nil, fmt.Errorf("templateNames can't be empty")
@@ -53,13 +53,13 @@ func MakeFrontend(rotatingLogHandler *misc.RotatingLogHandler, gerritClient *ger
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
-		var wipSerie *gerrit.Serie = nil
+		var wipChain *gerrit.Chain = nil
 		HEAD := ""
 		currentlyRunning := runner.IsCurrentlyRunning()
 
 		// don't trigger operations requiring a lock
 		if !currentlyRunning {
-			wipSerie = runner.GetWIPSerie()
+			wipChain = runner.GetWIPChain()
 			HEAD = gerritClient.GetHEAD()
 		}
 
@@ -91,7 +91,7 @@ func MakeFrontend(rotatingLogHandler *misc.RotatingLogHandler, gerritClient *ger
 
 		tmpl := template.Must(loadTemplate([]string{
 			"index.tmpl.html",
-			"serie.tmpl.html",
+			"chain.tmpl.html",
 			"changeset.tmpl.html",
 		}, funcMap))
 
@@ -102,7 +102,7 @@ func MakeFrontend(rotatingLogHandler *misc.RotatingLogHandler, gerritClient *ger
 
 			// State
 			"currentlyRunning": currentlyRunning,
-			"wipSerie":         wipSerie,
+			"wipChain":         wipChain,
 			"HEAD":             HEAD,
 
 			// History

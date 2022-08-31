@@ -7,34 +7,34 @@ import (
 	"github.com/apex/log"
 )
 
-// Serie represents a list of successive changesets with an unbroken parent -> child relation,
+// Chain represents a list of successive changesets with an unbroken parent -> child relation,
 // starting from the parent.
-type Serie struct {
+type Chain struct {
 	ChangeSets []*Changeset
 }
 
 // GetParentCommitIDs returns the parent commit IDs
-func (s *Serie) GetParentCommitIDs() ([]string, error) {
+func (s *Chain) GetParentCommitIDs() ([]string, error) {
 	if len(s.ChangeSets) == 0 {
-		return nil, fmt.Errorf("Can't return parent on a serie with zero ChangeSets")
+		return nil, fmt.Errorf("can't return parent on a chain with zero ChangeSets")
 	}
 	return s.ChangeSets[0].ParentCommitIDs, nil
 }
 
 // GetLeafCommitID returns the commit id of the last commit in ChangeSets
-func (s *Serie) GetLeafCommitID() (string, error) {
+func (s *Chain) GetLeafCommitID() (string, error) {
 	if len(s.ChangeSets) == 0 {
-		return "", fmt.Errorf("Can't return leaf on a serie with zero ChangeSets")
+		return "", fmt.Errorf("can't return leaf on a chain with zero ChangeSets")
 	}
 	return s.ChangeSets[len(s.ChangeSets)-1].CommitID, nil
 }
 
-// CheckIntegrity checks that the series contains a properly ordered and connected chain of commits
-func (s *Serie) CheckIntegrity() error {
-	logger := log.WithField("serie", s)
-	// an empty serie is invalid
+// Validate checks that the chain contains a properly ordered and connected chain of commits
+func (s *Chain) Validate() error {
+	logger := log.WithField("chain", s)
+	// an empty chain is invalid
 	if len(s.ChangeSets) == 0 {
-		return fmt.Errorf("An empty serie is invalid")
+		return fmt.Errorf("an empty chain is invalid")
 	}
 
 	previousCommitID := ""
@@ -48,12 +48,12 @@ func (s *Serie) CheckIntegrity() error {
 
 		parentCommitIDs := changeset.ParentCommitIDs
 		if len(parentCommitIDs) == 0 {
-			return fmt.Errorf("Changesets without any parent are not supported")
+			return fmt.Errorf("changesets without any parent are not supported")
 		}
-		// we don't check parents of the first changeset in a series
+		// we don't check parents of the first changeset in a chain
 		if i != 0 {
 			if len(parentCommitIDs) != 1 {
-				return fmt.Errorf("Merge commits in the middle of a series are not supported (only at the beginning)")
+				return fmt.Errorf("merge commits in the middle of a chain are not supported (only at the beginning)")
 			}
 			if parentCommitIDs[0] != previousCommitID {
 				return fmt.Errorf("changesets parent commit id doesn't match previous commit id")
@@ -65,20 +65,20 @@ func (s *Serie) CheckIntegrity() error {
 	return nil
 }
 
-// FilterAllChangesets applies a filter function on all of the changesets in the series.
+// AllChangesets applies a filter function on all of the changesets in the chain.
 // returns true if it returns true for all changesets, false otherwise
-func (s *Serie) FilterAllChangesets(f func(c *Changeset) bool) bool {
+func (s *Chain) AllChangesets(f func(c *Changeset) bool) bool {
 	for _, changeset := range s.ChangeSets {
-		if f(changeset) == false {
+		if !f(changeset) {
 			return false
 		}
 	}
 	return true
 }
 
-func (s *Serie) String() string {
+func (s *Chain) String() string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("Serie[%d]", len(s.ChangeSets)))
+	sb.WriteString(fmt.Sprintf("Chain[%d]", len(s.ChangeSets)))
 	if len(s.ChangeSets) == 0 {
 		sb.WriteString("()\n")
 		return sb.String()
@@ -105,8 +105,4 @@ func (s *Serie) String() string {
 		s.ChangeSets[0].CommitID,
 		s.ChangeSets[len(s.ChangeSets)-1].CommitID))
 	return sb.String()
-}
-
-func shortCommitID(commitID string) string {
-	return commitID[:6]
 }

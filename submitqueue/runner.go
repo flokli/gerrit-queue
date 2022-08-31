@@ -13,11 +13,11 @@ import (
 // it contains a mutex to avoid being run multiple times.
 // In fact, it even cancels runs while another one is still in progress.
 // It contains a Gerrit object facilitating access, a log object, the configured submit queue tag
-// and a `wipSerie` (only populated if waiting for a rebase)
+// and a `wipChain` (only populated if waiting for a rebase)
 type Runner struct {
 	mut              sync.Mutex
 	currentlyRunning bool
-	wipSerie         *gerrit.Serie
+	wipChain         *gerrit.Chain
 	logger           *log.Logger
 	gerrit           *gerrit.Client
 }
@@ -32,12 +32,13 @@ func NewRunner(logger *log.Logger, gerrit *gerrit.Client) *Runner {
 
 // isAutoSubmittable determines if something could be autosubmitted, potentially requiring a rebase
 // for this, it needs to:
-//  * have the "Autosubmit" label set to +1
-//  * have gerrit's 'submittable' field set to true
-// it doesn't check if the series is rebased on HEAD
-func (r *Runner) isAutoSubmittable(s *gerrit.Serie) bool {
+//   - have the "Autosubmit" label set to +1
+//   - have gerrit's 'submittable' field set to true
+//
+// it doesn't check if the chain is rebased on HEAD
+func (r *Runner) isAutoSubmittable(s *gerrit.Chain) bool {
 	for _, c := range s.ChangeSets {
-		if c.Submittable != true || !c.IsAutosubmit() {
+		if !c.Submittable || !c.IsAutosubmit() {
 			return false
 		}
 	}
@@ -49,14 +50,14 @@ func (r *Runner) IsCurrentlyRunning() bool {
 	return r.currentlyRunning
 }
 
-// GetWIPSerie returns the current wipSerie, if any, nil otherwiese
+// GetWIPChain returns the current wipChain, if any, nil otherwiese
 // Acquires a lock, so check with IsCurrentlyRunning first
-func (r *Runner) GetWIPSerie() *gerrit.Serie {
+func (r *Runner) GetWIPChain() *gerrit.Chain {
 	r.mut.Lock()
 	defer func() {
 		r.mut.Unlock()
 	}()
-	return r.wipSerie
+	return r.wipChain
 }
 
 // Trigger gets triggered periodically
@@ -65,7 +66,7 @@ func (r *Runner) Trigger(fetchOnly bool) error {
 	// Only one trigger can run at the same time
 	r.mut.Lock()
 	if r.currentlyRunning {
-		return fmt.Errorf("Already running, skipping")
+		return fmt.Errorf("already running, skipping")
 	}
 	r.currentlyRunning = true
 	r.mut.Unlock()
@@ -86,122 +87,122 @@ func (r *Runner) Trigger(fetchOnly bool) error {
 		return nil
 	}
 
-	if r.wipSerie != nil {
-		// refresh wipSerie with how it looks like in gerrit now
-		wipSerie := r.gerrit.FindSerie(func(s *gerrit.Serie) bool {
-			// the new wipSerie needs to have the same number of changesets
-			if len(r.wipSerie.ChangeSets) != len(s.ChangeSets) {
+	if r.wipChain != nil {
+		// refresh wipChain with how it looks like in gerrit now
+		wipChain := r.gerrit.FindFirstChain(func(s *gerrit.Chain) bool {
+			// the new wipChain needs to have the same number of changesets
+			if len(r.wipChain.ChangeSets) != len(s.ChangeSets) {
 				return false
 			}
 			// … and the same ChangeIDs.
 			for idx, c := range s.ChangeSets {
-				if r.wipSerie.ChangeSets[idx].ChangeID != c.ChangeID {
+				if r.wipChain.ChangeSets[idx].ChangeID != c.ChangeID {
 					return false
 				}
 			}
 			return true
 		})
-		if wipSerie == nil {
-			r.logger.WithField("wipSerie", r.wipSerie).Warn("wipSerie has disappeared")
-			r.wipSerie = nil
+		if wipChain == nil {
+			r.logger.WithField("wipChain", r.wipChain).Warn("wipChain has disappeared")
+			r.wipChain = nil
 		} else {
-			r.wipSerie = wipSerie
+			r.wipChain = wipChain
 		}
 	}
 
 	for {
 		// initialize logger
 		r.logger.Info("Running")
-		if r.wipSerie != nil {
-			// if we have a wipSerie
-			l := r.logger.WithField("wipSerie", r.wipSerie)
-			l.Info("Checking wipSerie")
+		if r.wipChain != nil {
+			// if we have a wipChain
+			l := r.logger.WithField("wipChain", r.wipChain)
+			l.Info("Checking wipChain")
 
-			// discard wipSerie not rebased on HEAD
+			// discard wipChain not rebased on HEAD
 			// we rebase them at the end of the loop, so this means master advanced without going through the submit queue
-			if !r.gerrit.SerieIsRebasedOnHEAD(r.wipSerie) {
-				l.Warnf("HEAD has moved to %v while still waiting for wipSerie, discarding it", r.gerrit.GetHEAD())
-				r.wipSerie = nil
+			if !r.gerrit.ChainIsRebasedOnHEAD(r.wipChain) {
+				l.Warnf("HEAD has moved to %v while still waiting for wipChain, discarding it", r.gerrit.GetHEAD())
+				r.wipChain = nil
 				continue
 			}
 
 			// we now need to check CI feedback:
-			// wipSerie might have failed CI in the meantime
-			for _, c := range r.wipSerie.ChangeSets {
+			// wipChain might have failed CI in the meantime
+			for _, c := range r.wipChain.ChangeSets {
 				if c == nil {
 					l.Error("BUG: changeset is nil")
 					continue
 				}
 				if c.Verified < 0 {
-					l.WithField("failingChangeset", c).Warnf("wipSerie failed CI in the meantime, discarding.")
-					r.wipSerie = nil
+					l.WithField("failingChangeset", c).Warnf("wipChain failed CI in the meantime, discarding.")
+					r.wipChain = nil
 					continue
 				}
 			}
 
 			// it might still be waiting for CI
-			for _, c := range r.wipSerie.ChangeSets {
+			for _, c := range r.wipChain.ChangeSets {
 				if c == nil {
 					l.Error("BUG: changeset is nil")
 					continue
 				}
 				if c.Verified == 0 {
-					l.WithField("pendingChangeset", c).Warnf("still waiting for CI feedback in wipSerie, going back to sleep.")
+					l.WithField("pendingChangeset", c).Warnf("still waiting for CI feedback in wipChain, going back to sleep.")
 					// break the loop, take a look at it at the next trigger.
 					return nil
 				}
 			}
 
 			// it might be autosubmittable
-			if r.isAutoSubmittable(r.wipSerie) {
-				l.Infof("submitting wipSerie")
+			if r.isAutoSubmittable(r.wipChain) {
+				l.Infof("submitting wipChain")
 				// if the WIP changeset is ready (auto submittable and rebased on HEAD), submit
-				for _, changeset := range r.wipSerie.ChangeSets {
+				for _, changeset := range r.wipChain.ChangeSets {
 					_, err := r.gerrit.SubmitChangeset(changeset)
 					if err != nil {
 						l.WithField("changeset", changeset).Error("error submitting changeset")
-						r.wipSerie = nil
+						r.wipChain = nil
 						return err
 					}
 				}
-				r.wipSerie = nil
+				r.wipChain = nil
 			} else {
-				l.Error("BUG: wipSerie is not autosubmittable")
-				r.wipSerie = nil
+				l.Error("BUG: wipChain is not autosubmittable")
+				r.wipChain = nil
 			}
 		}
 
-		r.logger.Info("Looking for series ready to submit")
-		// Find serie, that:
+		r.logger.Info("Looking for chains ready to submit")
+		// Find chain, that:
 		//  * has the auto-submit label
 		//  * has +2 review
 		//  * has +1 CI
 		//  * is rebased on master
-		serie := r.gerrit.FindSerie(func(s *gerrit.Serie) bool {
+		chain := r.gerrit.FindFirstChain(func(s *gerrit.Chain) bool {
 			return r.isAutoSubmittable(s) && s.ChangeSets[0].ParentCommitIDs[0] == r.gerrit.GetHEAD()
 		})
-		if serie != nil {
-			r.logger.WithField("serie", serie).Info("Found serie to submit without necessary rebase")
-			r.wipSerie = serie
+		if chain != nil {
+			r.logger.WithField("chain", chain).Info("Found chain to submit without necessary rebase")
+			r.wipChain = chain
 			continue
 		}
 
-		// Find serie, that:
+		// Find chain, that:
 		//  * has the auto-submit label
 		//  * has +2 review
 		//  * has +1 CI
 		//  * is NOT rebased on master
-		serie = r.gerrit.FindSerie(r.isAutoSubmittable)
-		if serie == nil {
-			r.logger.Info("no more submittable series found, going back to sleep.")
+		chain = r.gerrit.FindFirstChain(r.isAutoSubmittable)
+		if chain == nil {
+			r.logger.Info("no more submittable chain found, going back to sleep.")
 			break
 		}
 
-		l := r.logger.WithField("serie", serie)
-		l.Info("found serie, which needs a rebase")
-		// TODO: move into Client.RebaseSeries function
+		l := r.logger.WithField("chain", chain)
+		l.Info("found chain, which needs a rebase")
+		// TODO: move into Client.RebaseChangeset function
 		head := r.gerrit.GetHEAD()
-		for _, changeset := range serie.ChangeSets {
+		for _, changeset := range chain.ChangeSets {
 			changeset, err := r.gerrit.RebaseChangeset(changeset, head)
 			if err != nil {
 				l.Error(err.Error())
@@ -211,7 +212,7 @@ func (r *Runner) Trigger(fetchOnly bool) error {
 		}
 		// we don't need to care about updating the rebased changesets or getting the updated HEAD,
 		// as we'll refetch it on the beginning of the next trigger anyways
-		r.wipSerie = serie
+		r.wipChain = chain
 		break
 	}
 

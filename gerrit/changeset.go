@@ -9,7 +9,6 @@ import (
 )
 
 // Changeset represents a single changeset
-// Relationships between different changesets are described in Series
 type Changeset struct {
 	changeInfo      *goGerrit.ChangeInfo
 	ChangeID        string

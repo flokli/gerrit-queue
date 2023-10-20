@@ -152,7 +152,8 @@ func (c *Client) SubmitChangeset(changeset *Changeset) (*Changeset, error) {
 // RebaseChangeset rebases a given changeset on top of a given ref
 func (c *Client) RebaseChangeset(changeset *Changeset, ref string) (*Changeset, error) {
 	changeInfo, _, err := c.client.Changes.RebaseChange(changeset.ChangeID, &goGerrit.RebaseInput{
-		Base: ref,
+		Base:               ref,
+		OnBehalfOfUploader: true,
 	})
 	if err != nil {
 		return changeset, err

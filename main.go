@@ -25,6 +25,7 @@ func main() {
 
 	app := cli.NewApp()
 	app.Name = "gerrit-queue"
+	app.Description = "A merge bot for gerrit"
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{

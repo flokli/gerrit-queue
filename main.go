@@ -119,7 +119,7 @@ func main() {
 			Handler: handler,
 		}
 
-		server.ListenAndServe()
+		err = server.ListenAndServe()
 		if err != nil {
 			log.Fatalf(err.Error())
 		}

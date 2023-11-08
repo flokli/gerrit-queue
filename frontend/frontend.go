@@ -4,7 +4,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"html/template"
@@ -33,7 +33,7 @@ func loadTemplate(templateNames []string, funcMap template.FuncMap) (*template.T
 			return nil, err
 		}
 		defer r.Close()
-		contents, err := ioutil.ReadAll(r)
+		contents, err := io.ReadAll(r)
 		if err != nil {
 			return nil, err
 		}
@@ -95,7 +95,7 @@ func MakeFrontend(rotatingLogHandler *misc.RotatingLogHandler, gerritClient *ger
 			"changeset.tmpl.html",
 		}, funcMap))
 
-		tmpl.ExecuteTemplate(w, "index.tmpl.html", map[string]interface{}{
+		err := tmpl.ExecuteTemplate(w, "index.tmpl.html", map[string]interface{}{
 			// Config
 			"projectName": projectName,
 			"branchName":  branchName,
@@ -108,6 +108,10 @@ func MakeFrontend(rotatingLogHandler *misc.RotatingLogHandler, gerritClient *ger
 			// History
 			"memory": rotatingLogHandler,
 		})
+
+		if err != nil {
+			log.Warnf("failed to execute template: %s", err)
+		}
 	})
 	return mux
 }

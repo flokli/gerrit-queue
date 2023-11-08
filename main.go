@@ -25,6 +25,7 @@ func main() {
 
 	app := cli.NewApp()
 	app.Name = "gerrit-queue"
+	app.Description = "A merge bot for gerrit"
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
@@ -119,7 +120,7 @@ func main() {
 			Handler: handler,
 		}
 
-		server.ListenAndServe()
+		err = server.ListenAndServe()
 		if err != nil {
 			log.Fatalf(err.Error())
 		}
